@@ -149,6 +149,7 @@ Supported environment variables:
 | `TESSERA_DATA_DIR` | `~/.tessera` | App data root for the database, local users, auth keys, settings, worktrees, attachments, and session history |
 | `PORT` | `3000` from source, `32123` from the npm CLI | HTTP server port for source and npm runs |
 | `TESSERA_HOST` | `127.0.0.1` | Host interface for source and npm runs. `HOST` is also accepted by the source server |
+| `TESSERA_PORT` | unset | Pin the desktop (Electron) server to a fixed port instead of scanning from `32123`. Fails fast if the port is busy, keeping external links (e.g. `tailscale serve`) stable |
 | `LOG_LEVEL` | `info` | Backend log level: `debug`, `info`, `warn`, or `error` |
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | Override the Claude Code config directory used for skill discovery |
 
