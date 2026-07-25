@@ -15,6 +15,7 @@ import { loadCodexSessionOptions } from './provider-session-options-codex';
 import { loadClaudeSessionOptions } from './provider-session-options-claude';
 import { loadOpenCodeSessionOptions } from './provider-session-options-opencode';
 import { mergeCustomModelIds } from './provider-session-custom-models';
+import { buildKimiSessionOptions } from './provider-session-options-kimi';
 import { getAgentEnvironment } from './spawn-cli';
 import type { AgentEnvironment } from '../settings/types';
 import { SettingsManager } from '../settings/manager';
@@ -127,6 +128,8 @@ async function loadProviderSessionOptions(
     sessionOptions = await loadOpenCodeSessionOptions(
       agentEnvironment === 'static' || !agentEnvironment ? 'native' : agentEnvironment,
     );
+  } else if (providerId === 'kimi') {
+    sessionOptions = buildKimiSessionOptions();
   } else {
     sessionOptions = await loadClaudeSessionOptions(
       agentEnvironment === 'static' || !agentEnvironment ? 'native' : agentEnvironment,

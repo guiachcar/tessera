@@ -60,6 +60,11 @@ export interface SpawnOptions extends ProviderRuntimeControls {
    */
   opencodeSessionId?: string;
   /**
+   * Kimi: ACP sessionId from session/new, stored in sessions.provider_state
+   * as {"kimiSessionId": "..."}.
+   */
+  kimiSessionId?: string;
+  /**
    * Optional provider startup/handshake timeout override. Regular sessions use
    * provider defaults; diagnostics pass a shorter timeout so settings checks do
    * not hang for minutes.

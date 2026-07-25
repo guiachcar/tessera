@@ -15,6 +15,7 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   'claude-code': 'Claude Code',
   'codex': 'Codex',
   opencode: 'OpenCode',
+  kimi: 'Kimi Code',
 };
 
 const STATUS_DOT_CLASS: Record<CliStatusEntry['status'], string> = {

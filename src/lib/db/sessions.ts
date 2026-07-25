@@ -1003,6 +1003,20 @@ export function markOpenCodeTerminalSession(sessionId: string, opencodeSessionId
 }
 
 /**
+ * Safely extract the Kimi ACP session id from provider_state JSON.
+ * Returns undefined if the value is null, empty, or unparseable.
+ */
+export function extractKimiSessionId(providerState: string | null): string | undefined {
+  if (!providerState) return undefined;
+  try {
+    const value = JSON.parse(providerState).kimiSessionId;
+    return typeof value === 'string' && value ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Touch session updated_at (e.g., when a message is received).
  * Keeps the existing timestamp if the supplied activity timestamp is older.
  */

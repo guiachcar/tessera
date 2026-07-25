@@ -216,7 +216,10 @@ export function useSkillPicker(
       && useCommandStore.getState().commands[sessionId] === undefined;
 
     const task = (async () => {
-      if (providerId === 'opencode') {
+      // Providers whose parsers report slash commands over the live session
+      // (ACP available_commands_update): fetch via WS. Claude Code moved to the
+      // HTTP skills route upstream, so it is intentionally not listed here.
+      if (providerId === 'opencode' || providerId === 'kimi') {
         if (isSessionRunning !== false) {
           wsClient.getCommands(sessionId);
           return;

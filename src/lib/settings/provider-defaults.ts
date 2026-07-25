@@ -15,6 +15,7 @@ import {
   normalizeOpenCodeAccessMode,
   splitOpenCodeModelId,
 } from '@/lib/cli/providers/opencode/session-config';
+import { normalizeKimiAccessMode } from '@/lib/cli/providers/kimi/session-config';
 import type { UserSettings, ProviderSessionDefaults } from './types';
 import { normalizeCliCommandOverrides } from './cli-command-overrides';
 import {
@@ -312,7 +313,9 @@ export function resolveProviderPermissionMode(
   providerId: string,
   defaults: Pick<ProviderSessionDefaults, 'sessionMode' | 'accessMode'>,
 ): PermissionMode | undefined {
-  if (providerId === 'codex' || providerId === 'opencode') {
+  // Codex/OpenCode map controls to their own runtime knobs; Kimi's ACP server
+  // has no permission-mode concept at all (approvals are always interactive).
+  if (providerId === 'codex' || providerId === 'opencode' || providerId === 'kimi') {
     return undefined;
   }
 
@@ -388,6 +391,9 @@ function normalizeAccessMode(
   if (providerId === 'opencode') {
     return normalizeOpenCodeAccessMode(value);
   }
+  if (providerId === 'kimi') {
+    return normalizeKimiAccessMode(value);
+  }
   return normalizeClaudeAccessMode(value);
 }
 
@@ -450,6 +456,17 @@ function buildLegacySessionControls(
       case 'default':
       default:
         return { sessionMode: 'build', accessMode: 'opencodeDefault' };
+    }
+  }
+
+  if (providerId === 'kimi') {
+    switch (permissionMode) {
+      case 'plan':
+        return { sessionMode: 'plan', accessMode: 'default' };
+      case 'bypassPermissions':
+        return { sessionMode: 'work', accessMode: 'bypassPermissions' };
+      default:
+        return { sessionMode: 'work', accessMode: 'default' };
     }
   }
 
@@ -588,6 +605,10 @@ export function normalizeUserSettings(raw: Partial<UserSettings> | null | undefi
       opencode: {
         sessionMode: 'build',
         accessMode: 'opencodeDefault',
+      },
+      kimi: {
+        sessionMode: 'work',
+        accessMode: 'default',
       },
     },
     providerCustomModels: {},
