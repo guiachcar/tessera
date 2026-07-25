@@ -3,6 +3,7 @@
 import { memo, useCallback, useMemo, useState } from 'react';
 import type { ToolCallMessage } from '@/types/chat';
 import { ToolCallBlockContent, ToolCallBlockHeader } from './tool-call-block-sections';
+import { getToolCallFilePathParam, useChatWorkspaceFileTarget } from './use-chat-file-link';
 import {
   buildOutputPreview,
   formatToolParams,
@@ -61,6 +62,10 @@ export const ToolCallBlock = memo(function ToolCallBlock({
     defaultExpanded,
   });
 
+  const fileTarget = useChatWorkspaceFileTarget(
+    getToolCallFilePathParam(toolName, toolKind, toolParams),
+  );
+
   const displayName = useMemo(() => shortenToolName(toolName), [toolName]);
   const toolIcon = useMemo(() => getToolIcon(toolName, toolKind), [toolKind, toolName]);
   const summary = useMemo(
@@ -110,6 +115,9 @@ export const ToolCallBlock = memo(function ToolCallBlock({
           isError={isError}
           isRunning={isRunning}
           onToggle={toggleExpand}
+          fileLinkTitle={fileTarget ? `Open ${fileTarget.relativePath}` : undefined}
+          onOpenFile={fileTarget?.preview}
+          onOpenFilePinned={fileTarget?.openPinned}
         />
       )}
 

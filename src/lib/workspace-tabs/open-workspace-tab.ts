@@ -4,6 +4,7 @@ import { usePanelStore } from "@/stores/panel-store";
 import { useTabStore } from "@/stores/tab-store";
 import {
   buildMemoryFileSessionId,
+  buildWorkspaceExplorerSessionId,
   buildWorkspaceFileSessionId,
   type WorkspaceFileTabKind,
 } from "./special-session";
@@ -24,6 +25,16 @@ function focusOrCreateSpecialTab(
   tabStore.createTab(specialSessionId, {
     insertAfterTabId: options.insertAfterTabId ?? tabStore.activeTabId,
   });
+}
+
+export function openWorkspaceExplorerTab(sourceSessionId: string): void {
+  focusOrCreateSpecialTab(
+    buildWorkspaceExplorerSessionId(sourceSessionId),
+    {
+      pinExistingPreview: true,
+      insertAfterTabId: useTabStore.getState().activeTabId,
+    },
+  );
 }
 
 export function openWorkspaceFileTab(

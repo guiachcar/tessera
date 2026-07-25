@@ -5,7 +5,9 @@ import { useChatStore } from "@/stores/chat-store";
 import { wsClient } from "@/lib/ws/client";
 import type { ServerTransportMessage } from "@/lib/ws/message-types";
 
-const FALLBACK_POLL_INTERVAL_MS = 2_000;
+// Fallback covers workspaces without a working watcher (e.g. WSL roots served
+// from a Windows host) where each poll is a full listing — keep it modest.
+const FALLBACK_POLL_INTERVAL_MS = 5_000;
 
 type WorkspaceFilesChangedMessage = Extract<
   ServerTransportMessage,

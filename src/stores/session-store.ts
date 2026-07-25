@@ -136,6 +136,7 @@ function mapApiSessionToUnified(s: any, fallbackProjectDir: string): UnifiedSess
     goal: 'goal' in s ? s.goal : undefined,
     taskId: s.taskId ?? undefined,
     collectionId: s.collectionId ?? undefined,
+    parentSessionId: s.parentSessionId ?? undefined,
     diffStats: s.diffStats ?? undefined,
   };
 }

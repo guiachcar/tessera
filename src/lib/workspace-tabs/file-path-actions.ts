@@ -33,6 +33,57 @@ export function toAbsoluteWorkspacePath(
 const WINDOWS_ABSOLUTE_PATH = /^[A-Za-z]:[\\/]/;
 
 /**
+ * Inverse of toAbsoluteWorkspacePath: strip the workspace root off an absolute
+ * path, returning a forward-slash relative path — or null when the path lives
+ * outside the workspace. Windows-style roots compare case-insensitively.
+ */
+export function toRelativeWorkspacePath(
+  workDir: string | null | undefined,
+  absolutePath: string | null | undefined,
+): string | null {
+  const base = workDir?.trim();
+  const target = absolutePath?.trim();
+  if (!base || !target) return null;
+
+  const normalize = (value: string) => value.replace(/\\/g, "/").replace(/\/+$/, "");
+  const isWindowsBase = WINDOWS_ABSOLUTE_PATH.test(base) || base.startsWith("\\\\");
+  const normalizedBase = normalize(base);
+  const normalizedTarget = normalize(target);
+  if (!normalizedBase) return null;
+
+  const compareBase = isWindowsBase ? normalizedBase.toLowerCase() : normalizedBase;
+  const compareTarget = isWindowsBase ? normalizedTarget.toLowerCase() : normalizedTarget;
+
+  if (compareTarget === compareBase) return "";
+  if (!compareTarget.startsWith(`${compareBase}/`)) return null;
+  return normalizedTarget.slice(normalizedBase.length + 1);
+}
+
+/**
+ * Best-effort workspace root for a session on the client: the managed
+ * work_dir when present, otherwise the project path when it is absolute.
+ */
+export function getSessionWorkspaceRootPath(
+  session: { workDir?: string; projectDir?: string } | null | undefined,
+): string | null {
+  const workDir = session?.workDir?.trim();
+  if (workDir) return workDir;
+
+  const projectDir = session?.projectDir?.trim();
+  if (
+    projectDir
+    && (
+      (projectDir.startsWith("/") && !projectDir.startsWith("//"))
+      || WINDOWS_ABSOLUTE_PATH.test(projectDir)
+      || projectDir.startsWith("\\\\")
+    )
+  ) {
+    return projectDir;
+  }
+  return null;
+}
+
+/**
  * Detects whether a markdown link href points at a local file on the host
  * filesystem (rather than a web URL, mail/tel link, or in-page anchor) and
  * returns the normalized filesystem path. Returns null for anything that is

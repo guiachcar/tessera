@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, FileText, FolderTree, LoaderCircle, Search } from "lucide-react";
+import { AlertCircle, FolderTree, LoaderCircle, Search } from "lucide-react";
 import { useContext, useMemo, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -9,21 +9,11 @@ import {
   useWorkspaceFilesLiveSync,
 } from "@/hooks/use-workspace-files-live-sync";
 import { useWorkspaceFileList } from "@/hooks/use-workspace-file-list";
-import { openWorkspaceFileTab } from "@/lib/workspace-tabs/open-workspace-tab";
+import { WorkspaceFileTree } from "@/components/workspace/workspace-file-tree";
+import { buildFileTree } from "@/lib/workspace-files/file-tree";
 import type { WorkspaceExplorerSessionRef } from "@/lib/workspace-tabs/special-session";
 import { TabIdContext } from "@/stores/panel-store";
 import { useTabStore } from "@/stores/tab-store";
-import { cn } from "@/lib/utils";
-
-function basename(filePath: string): string {
-  const parts = filePath.split("/");
-  return parts[parts.length - 1] || filePath;
-}
-
-function dirname(filePath: string): string {
-  const slash = filePath.lastIndexOf("/");
-  return slash >= 0 ? filePath.slice(0, slash) : ".";
-}
 
 function EmptyState({
   title,
@@ -64,6 +54,7 @@ export function WorkspaceExplorerTab({
     loading,
     refreshFiles,
     truncated,
+    workDir,
   } = useWorkspaceFileList(explorerRef.sourceSessionId);
 
   useWorkspaceFilesLiveSync({
@@ -75,11 +66,11 @@ export function WorkspaceExplorerTab({
 
   const visibleFiles = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
-    if (!trimmed) return files.slice(0, 500);
-    return files
-      .filter((filePath) => filePath.toLowerCase().includes(trimmed))
-      .slice(0, 500);
+    if (!trimmed) return files;
+    return files.filter((filePath) => filePath.toLowerCase().includes(trimmed));
   }, [files, query]);
+  const fileTree = useMemo(() => buildFileTree(visibleFiles), [visibleFiles]);
+  const isSearching = query.trim().length > 0;
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-(--chat-bg)">
@@ -113,30 +104,21 @@ export function WorkspaceExplorerTab({
         </div>
       ) : error ? (
         <EmptyState title="Files unavailable" body={error} icon="error" />
-      ) : visibleFiles.length === 0 ? (
+      ) : fileTree.length === 0 ? (
         <EmptyState
           title={query.trim() ? "No matches" : "No files"}
           body={query.trim() ? "Try another search." : "This workspace has no readable files."}
         />
       ) : (
         <ScrollArea className="min-h-0 flex-1">
-          <div className="mx-auto max-w-5xl py-3">
-            {visibleFiles.map((filePath) => (
-              <button
-                key={filePath}
-                type="button"
-                onClick={() => openWorkspaceFileTab(explorerRef.sourceSessionId, "file", filePath)}
-                className={cn(
-                  "grid h-10 w-full grid-cols-[1.5rem_minmax(12rem,1fr)_minmax(12rem,1.5fr)] items-center gap-3 rounded-md px-3 text-left transition-colors",
-                  "text-(--text-secondary) hover:bg-(--sidebar-hover) hover:text-(--text-primary)",
-                )}
-                title={filePath}
-              >
-                <FileText className="h-4 w-4 text-(--text-muted)" />
-                <span className="truncate font-mono text-xs">{basename(filePath)}</span>
-                <span className="truncate text-xs text-(--text-muted)">{dirname(filePath)}</span>
-              </button>
-            ))}
+          <div className="mx-auto max-w-5xl px-3 py-3">
+            <WorkspaceFileTree
+              key={explorerRef.sourceSessionId}
+              nodes={fileTree}
+              sessionId={explorerRef.sourceSessionId}
+              workDir={workDir}
+              forceExpanded={isSearching}
+            />
           </div>
         </ScrollArea>
       )}

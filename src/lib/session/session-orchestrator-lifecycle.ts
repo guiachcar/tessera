@@ -140,6 +140,7 @@ export async function resumeSessionWithLifecycle({
   const provider = cliProviderRegistry.getProvider(providerId);
   const threadId = dbSessions.extractThreadId(session.provider_state);
   const opencodeSessionId = dbSessions.extractOpenCodeSessionId(session.provider_state);
+  const kimiSessionId = dbSessions.extractKimiSessionId(session.provider_state);
   const workDir = options.workDir || process.cwd();
 
   // Claude Code: if no Tessera history yet, the CLI has no record of this session.
@@ -147,7 +148,7 @@ export async function resumeSessionWithLifecycle({
   // with "No conversation found". Load history lazily only when needed later.
   let hasTesseraHistory: boolean | null = null;
   let useResume = true;
-  if (providerId === 'claude-code') {
+  if (providerId === 'claude-code' || providerId === 'zai') {
     hasTesseraHistory = await sessionHistory.historyExists(sessionId);
     useResume = hasTesseraHistory;
   } else if (providerId === 'codex') {
@@ -190,6 +191,26 @@ export async function resumeSessionWithLifecycle({
       };
     }
     useResume = !!opencodeSessionId;
+  } else if (providerId === 'kimi') {
+    hasTesseraHistory = await sessionHistory.historyExists(sessionId);
+    if (!kimiSessionId && hasTesseraHistory) {
+      logger.warn('Kimi session has canonical history but no ACP session id; refusing fresh session/new', {
+        userId,
+        sessionId,
+      });
+
+      const replayState = await loadReadOnlyReplayState(sessionId);
+      return {
+        sessionId,
+        messages: replayState.messages,
+        status: 'read_only',
+        usage: replayState.usage,
+        contextUsage: replayState.contextUsage,
+        activeInteractivePrompt: replayState.activeInteractivePrompt,
+        todoSnapshot: replayState.todoSnapshot,
+      };
+    }
+    useResume = !!kimiSessionId;
   }
 
   // Fall back to the persisted model/effort when the caller didn't supply them.
@@ -212,7 +233,7 @@ export async function resumeSessionWithLifecycle({
   // resuming) so it survives the next cold restart too. skipTimestamp keeps the
   // sidebar ordering stable.
   if (
-    providerId === 'claude-code'
+    (providerId === 'claude-code' || providerId === 'zai')
     && (options.model !== undefined || options.reasoningEffort !== undefined)
   ) {
     dbSessions.updateSession(
@@ -246,6 +267,7 @@ export async function resumeSessionWithLifecycle({
     {
       ...(useResume ? { resume: true, threadId } : { resume: false }),
       ...(providerId === 'opencode' && useResume ? { opencodeSessionId } : {}),
+      ...(providerId === 'kimi' && useResume ? { kimiSessionId } : {}),
       sessionMode: options.sessionMode,
       accessMode: options.accessMode,
       collaborationMode: options.collaborationMode,
@@ -288,11 +310,16 @@ export async function resumeSessionWithLifecycle({
     );
   }
 
-  if (!cliSessionId && providerId === 'opencode' && opencodeSessionId && !hasTesseraHistory) {
-    logger.warn('OpenCode resume failed without canonical history; retrying with session/new', {
+  if (
+    !cliSessionId
+    && ((providerId === 'opencode' && opencodeSessionId) || (providerId === 'kimi' && kimiSessionId))
+    && !hasTesseraHistory
+  ) {
+    logger.warn(`${providerId === 'kimi' ? 'Kimi' : 'OpenCode'} resume failed without canonical history; retrying with session/new`, {
       userId,
       sessionId,
       opencodeSessionId,
+      kimiSessionId,
     });
 
     cliSessionId = await processManager.resumeSession(

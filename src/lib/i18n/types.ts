@@ -409,6 +409,7 @@ export interface I18nMessages {
     inputNewlineMode: string;
     dropSessionReference: string;
     closeSession: string;
+    openSideChat: string;
     branchLabel: string;
     worktreeDeleted: string;
     askUserTitle: string;
@@ -815,6 +816,7 @@ export interface I18nMessages {
     sessionFileNotFound: string;
     messageRenderError: string;
     sessionExportFailed: string;
+    sideChatFailed: string;
     sessionRefPreparing: string;
     sessionRefUnavailable: string;
     unknownError: string;

@@ -973,6 +973,11 @@ function runMigrations(db: DatabaseWrapper, fromVersion: number): void {
     addColumnIfMissing(db, 'sessions', 'service_tier', 'TEXT');
     logger.info('Migration v28 applied: sessions.service_tier column added');
   }
+
+  if (fromVersion < 29) {
+    addColumnIfMissing(db, 'sessions', 'parent_session_id', 'TEXT');
+    logger.info('Migration v29 applied: sessions.parent_session_id column added');
+  }
 }
 
 /**

@@ -22,6 +22,9 @@ import type {
 // install_id + host info ride along unconditionally — no gating, no PII.
 
 const CACHE_FILE = 'model-config.json';
+// User-editable overlay merged over the remote catalog: lets a fork/user add a
+// freshly launched model (or override an entry) without waiting for the Worker.
+const LOCAL_OVERLAY_FILE = 'model-config.local.json';
 const FETCH_TIMEOUT_MS = 10_000;
 const MAX_MODELS = 50;
 const MAX_EFFORTS = 16;
@@ -42,6 +45,7 @@ export interface CachedModelConfig {
 export type ModelConfigFetchReason = 'launch' | 'session';
 
 let activeConfig: CachedModelConfig | null = null;
+let overlayModels: ProviderModelOption[] = [];
 let diskLoadPromise: Promise<void> | null = null;
 let inFlightRefresh: Promise<{ changed: boolean }> | null = null;
 
@@ -156,6 +160,66 @@ function normalizeCacheRecord(raw: unknown): CachedModelConfig | null {
   };
 }
 
+// ── local overlay (user-editable; merged over the remote catalog) ──
+
+function getOverlayPath(): string {
+  return getTesseraDataPath(LOCAL_OVERLAY_FILE);
+}
+
+function normalizeOverlayModels(raw: unknown): ProviderModelOption[] {
+  const list = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === 'object'
+      ? (raw as Record<string, unknown>).models
+      : null;
+  if (!Array.isArray(list)) return [];
+  const out: ProviderModelOption[] = [];
+  for (const item of list.slice(0, MAX_MODELS)) {
+    const model = normalizeModel(item);
+    if (model) out.push(model);
+  }
+  return out;
+}
+
+async function readLocalOverlay(): Promise<ProviderModelOption[]> {
+  try {
+    const raw = await fsp.readFile(getOverlayPath(), 'utf8');
+    return normalizeOverlayModels(JSON.parse(raw));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      logger.warn({ error }, 'model-config: local overlay read failed');
+    }
+    return [];
+  }
+}
+
+/**
+ * Merge the local overlay over the remote list: same `value` replaces the
+ * remote entry in place, new values append. If an overlay entry claims
+ * isDefault, remote defaults are cleared so exactly one default survives.
+ */
+export function mergeModelOptions(
+  remote: ProviderModelOption[],
+  overlay: ProviderModelOption[],
+): ProviderModelOption[] {
+  if (overlay.length === 0) return remote;
+
+  const overlayByValue = new Map(overlay.map((model) => [model.value, model]));
+  const remoteValues = new Set(remote.map((model) => model.value));
+  const merged = remote.map((model) => overlayByValue.get(model.value) ?? model);
+  for (const model of overlay) {
+    if (!remoteValues.has(model.value)) merged.push(model);
+  }
+
+  const overlayDefault = overlay.find((model) => model.isDefault);
+  if (!overlayDefault) return merged;
+  return merged.map((model) =>
+    model.value !== overlayDefault.value && model.isDefault
+      ? { ...model, isDefault: false }
+      : model,
+  );
+}
+
 // ── disk cache (atomic write, mirrors settings/manager + telemetry/server-state) ──
 
 function getCachePath(): string {
@@ -194,16 +258,17 @@ async function writeDiskCache(config: CachedModelConfig): Promise<void> {
 
 /** Sync read used by buildClaudeSessionOptions(). Empty until a config has loaded. */
 export function getClaudeModelOptions(): ProviderModelOption[] {
-  return activeConfig?.models ?? [];
+  return mergeModelOptions(activeConfig?.models ?? [], overlayModels);
 }
 
-/** Idempotent: load the disk cache into the store once. No network. */
+/** Idempotent: load the disk cache + local overlay into the store once. No network. */
 export function ensureRemoteModelConfigLoaded(): Promise<void> {
   if (!diskLoadPromise) {
-    diskLoadPromise = readDiskCache()
-      .then((disk) => {
+    diskLoadPromise = Promise.all([readDiskCache(), readLocalOverlay()])
+      .then(([disk, overlay]) => {
         // Don't clobber a fresher config already set by a concurrent refresh.
         if (disk && !activeConfig) activeConfig = disk;
+        overlayModels = overlay;
       })
       .catch((error) => {
         logger.warn({ error }, 'model-config: disk cache load failed');
@@ -282,6 +347,8 @@ async function doRefresh(
   const fetchImpl = deps.fetchImpl ?? fetch;
   const hostInfo = deps.hostInfo ?? getServerHostInfo();
   await ensureRemoteModelConfigLoaded();
+  // Re-read the overlay on each launch/session trigger so edits apply without a restart.
+  overlayModels = await readLocalOverlay();
 
   const headers = await buildRequestHeaders(hostInfo, reason);
   if (activeConfig?.etag) headers['If-None-Match'] = activeConfig.etag;
@@ -333,7 +400,9 @@ async function doRefresh(
 /** Test-only: reset module state between cases. */
 export function __resetRemoteModelConfigForTests(): void {
   activeConfig = null;
+  overlayModels = [];
   diskLoadPromise = null;
   inFlightRefresh = null;
   rmSync(getCachePath(), { force: true });
+  rmSync(getOverlayPath(), { force: true });
 }
