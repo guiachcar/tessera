@@ -20,6 +20,11 @@ export const CONFIGURABLE_CLI_PROVIDERS = [
     displayName: 'OpenCode',
     commandName: 'opencode',
   },
+  {
+    providerId: 'kimi',
+    displayName: 'Kimi Code',
+    commandName: 'kimi',
+  },
 ] as const;
 
 export function sanitizeCliCommandOverride(value: unknown): string {

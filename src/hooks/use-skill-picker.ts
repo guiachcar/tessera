@@ -181,7 +181,13 @@ export function useSkillPicker(
     }
 
     const task = (async () => {
-      if (providerId === 'claude-code' || providerId === 'opencode') {
+      // Providers whose parsers report slash commands over the live session
+      // (Claude stream-json init, ACP available_commands_update): fetch via WS.
+      if (
+        providerId === 'claude-code'
+        || providerId === 'opencode'
+        || providerId === 'kimi'
+      ) {
         if (isSessionRunning !== false) {
           wsClient.getCommands(sessionId);
         }

@@ -14,6 +14,7 @@ import {
 } from './provider-session-option-types';
 import { loadCodexSessionOptions } from './provider-session-options-codex';
 import { loadOpenCodeSessionOptions } from './provider-session-options-opencode';
+import { buildKimiSessionOptions } from './provider-session-options-kimi';
 import { ensureModelConfigReady } from '../model-config/remote-config';
 import { getAgentEnvironment } from './spawn-cli';
 import type { AgentEnvironment } from '../settings/types';
@@ -127,6 +128,10 @@ async function loadProviderSessionOptions(
     return loadOpenCodeSessionOptions(
       agentEnvironment === 'static' || !agentEnvironment ? 'native' : agentEnvironment,
     );
+  }
+
+  if (providerId === 'kimi') {
+    return buildKimiSessionOptions();
   }
 
   await ensureModelConfigReady();

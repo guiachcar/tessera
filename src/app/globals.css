@@ -181,6 +181,11 @@
   --provider-opencode-icon: #211e1e;
   --provider-opencode-logo-fill: #f1ecec;
   --provider-opencode-logo-inner: #4b4646;
+  --provider-kimi-avatar-bg: #101828;
+  --provider-kimi-avatar-fg: #4fe3c1;
+  --provider-kimi-soft-bg: rgba(16, 24, 40, 0.08);
+  --provider-kimi-soft-border: rgba(16, 24, 40, 0.18);
+  --provider-kimi-icon: #101828;
 
   /* Structural */
   --divider: #d9d9d5;
@@ -332,6 +337,11 @@
   --provider-opencode-icon: #f1ecec;
   --provider-opencode-logo-fill: #211e1e;
   --provider-opencode-logo-inner: #cfcecd;
+  --provider-kimi-avatar-bg: #16b096;
+  --provider-kimi-avatar-fg: #0b1220;
+  --provider-kimi-soft-bg: rgba(22, 176, 150, 0.12);
+  --provider-kimi-soft-border: rgba(22, 176, 150, 0.24);
+  --provider-kimi-icon: #4fe3c1;
 
   /* Structural */
   --divider: #252525;

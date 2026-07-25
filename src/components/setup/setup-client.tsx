@@ -60,6 +60,10 @@ const SUPPORTED_PROVIDERS = [
     providerId: 'opencode',
     displayName: 'OpenCode',
   },
+  {
+    providerId: 'kimi',
+    displayName: 'Kimi Code',
+  },
 ] as const;
 
 interface SetupClientProps {
@@ -843,6 +847,7 @@ function getProviderInstallUrl(providerId: string, status: SetupStatusResponse):
   if (providerId === 'claude-code') return status.installLinks.claudeCode;
   if (providerId === 'codex') return status.installLinks.codex;
   if (providerId === 'opencode') return status.installLinks.opencode;
+  if (providerId === 'kimi') return status.installLinks.kimi;
   return null;
 }
 
