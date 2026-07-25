@@ -15,6 +15,7 @@ import * as net from 'net';
 import * as path from 'path';
 import * as fs from 'fs';
 import { createTray, destroyTray, updateTrayCloseBehavior } from './tray';
+import { parseFixedPort } from './port-config';
 import { getTesseraDataPath } from '../src/lib/tessera-data-dir';
 import { normalizeExternalHttpUrl } from '../src/lib/external-http-url';
 import { readTerminalClipboard, writeTerminalClipboardText } from './terminal-clipboard';
@@ -683,6 +684,16 @@ async function isPortAvailable(port: number): Promise<boolean> {
 }
 
 async function findStablePort(): Promise<number> {
+  const fixedPort = parseFixedPort(process.env.TESSERA_PORT);
+  if (fixedPort !== null) {
+    if (!(await isPortAvailable(fixedPort))) {
+      throw new Error(
+        `TESSERA_PORT=${fixedPort} is already in use. Close the process using that port or unset TESSERA_PORT.`
+      );
+    }
+    return fixedPort;
+  }
+
   for (let offset = 0; offset < ELECTRON_PORT_SCAN_LIMIT; offset += 1) {
     const candidate = ELECTRON_DEFAULT_PORT + offset;
     if (await isPortAvailable(candidate)) return candidate;
