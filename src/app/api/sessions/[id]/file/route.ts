@@ -9,6 +9,12 @@ import {
   isAbsoluteFilesystemPath,
 } from "@/lib/filesystem/host-path";
 import { resolveSessionWorkspaceFilesystemRoot } from "@/lib/session/session-workspace-root";
+import {
+  readWorkspaceFileViaWslUnc,
+  resolveWslWorkspaceRelativePath,
+  statWorkspaceFileViaWslUnc,
+  WorkspaceWslIoError,
+} from "@/lib/workspace-files/wsl-workspace-io";
 
 const MAX_TEXT_FILE_BYTES = 512 * 1024;
 const MAX_RAW_FILE_BYTES = 25 * 1024 * 1024;
@@ -158,6 +164,56 @@ function inferContentType(filePath: string): string {
   return aliases[ext] ?? "application/octet-stream";
 }
 
+// Returns null when the WSL fast path is unavailable (caller falls back to fs).
+async function serveWorkspaceFileViaWsl(
+  sessionId: string,
+  root: string,
+  rawPath: string,
+  request: NextRequest,
+): Promise<NextResponse | null> {
+  if (isAbsoluteFilesystemPath(rawPath.replace(/\\/g, "/"))) {
+    throw new WorkspaceFileError("invalid_file_path", "File path must be relative", 400);
+  }
+  const relativePath = resolveWslWorkspaceRelativePath(rawPath);
+  const fileStat = await statWorkspaceFileViaWslUnc(root, relativePath);
+  if (!fileStat) return null;
+  if (!fileStat.isFile) {
+    throw new WorkspaceFileError("invalid_file_path", "Path is not a file", 400);
+  }
+
+  if (request.nextUrl.searchParams.get("raw") === "1") {
+    if (fileStat.size > MAX_RAW_FILE_BYTES) {
+      throw new WorkspaceFileError("file_too_large", "File is too large to preview", 413);
+    }
+    const buffer = await readWorkspaceFileViaWslUnc(root, relativePath, MAX_RAW_FILE_BYTES);
+    if (!buffer) return null;
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type": inferContentType(relativePath),
+        "Cache-Control": "private, max-age=30",
+        "Content-Length": String(buffer.byteLength),
+      },
+    });
+  }
+
+  const buffer = await readWorkspaceFileViaWslUnc(root, relativePath, MAX_TEXT_FILE_BYTES + 1);
+  if (!buffer) return null;
+  const binary = isLikelyBinary(buffer);
+  const truncated = fileStat.size > MAX_TEXT_FILE_BYTES || buffer.byteLength > MAX_TEXT_FILE_BYTES;
+  const contentBuffer = buffer.subarray(0, Math.min(buffer.byteLength, MAX_TEXT_FILE_BYTES));
+
+  return NextResponse.json({
+    sessionId,
+    workDir: root,
+    path: relativePath,
+    content: binary ? "" : contentBuffer.toString("utf8"),
+    language: inferLanguage(relativePath),
+    size: fileStat.size,
+    truncated,
+    binary,
+  });
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -176,6 +232,15 @@ export async function GET(
     }
 
     const rawPath = request.nextUrl.searchParams.get("path") ?? "";
+
+    // \\wsl.localhost roots: realpath/open over 9P routinely blow the 2s fs
+    // deadline; read inside the distro instead. Falls through to the fs path
+    // when the root is not WSL, the distro is stopped, or the command fails.
+    if (root.startsWith("\\\\") || root.startsWith("//")) {
+      const wslResponse = await serveWorkspaceFileViaWsl(id, root, rawPath, request);
+      if (wslResponse) return wslResponse;
+    }
+
     const { absolutePath, relativePath } = await resolveRequestedFile(root, rawPath);
     const fileStat = await withFsDeadline(fs.stat(absolutePath));
     if (!fileStat.isFile()) {
@@ -226,7 +291,7 @@ export async function GET(
       binary,
     });
   } catch (error) {
-    if (error instanceof WorkspaceFileError) {
+    if (error instanceof WorkspaceFileError || error instanceof WorkspaceWslIoError) {
       return jsonError(error.code, error.message, error.status);
     }
 

@@ -86,6 +86,24 @@ function buildWorkspaceRawFileUrl(sessionId: string, filePath: string): string {
   return `/api/sessions/${encodeURIComponent(sessionId)}/file?path=${encodeURIComponent(filePath)}&raw=1`;
 }
 
+const PREVIEWABLE_IMAGE_EXTENSIONS = new Set([
+  "avif",
+  "bmp",
+  "gif",
+  "jpeg",
+  "jpg",
+  "png",
+  "svg",
+  "webp",
+]);
+
+function getBinaryPreviewKind(filePath: string): "pdf" | "image" | null {
+  const extension = filePath.split(".").pop()?.toLowerCase() ?? "";
+  if (extension === "pdf") return "pdf";
+  if (PREVIEWABLE_IMAGE_EXTENSIONS.has(extension)) return "image";
+  return null;
+}
+
 function useCanUseElectronFileActions(): boolean {
   return useSyncExternalStore(
     subscribeToStaticClientValue,
@@ -316,6 +334,33 @@ export function WorkspaceCodeView({
   }
 
   if (fileData?.binary) {
+    const binaryPreviewKind = getBinaryPreviewKind(path);
+    const rawFileUrl = sourceSessionId ? buildWorkspaceRawFileUrl(sourceSessionId, path) : null;
+
+    if (binaryPreviewKind && rawFileUrl) {
+      return (
+        <div className="flex h-full min-h-0 flex-col bg-(--chat-bg)">
+          <PendingStateHeader mode={mode} path={path} onClose={onClose} />
+          {binaryPreviewKind === "pdf" ? (
+            <iframe
+              src={rawFileUrl}
+              title={path}
+              className="min-h-0 w-full flex-1 border-0 bg-white"
+            />
+          ) : (
+            <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">
+              {/* eslint-disable-next-line @next/next/no-img-element -- raw workspace asset, not an optimizable route */}
+              <img
+                src={rawFileUrl}
+                alt={path}
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="flex h-full min-h-0 flex-col bg-(--chat-bg)">
         <PendingStateHeader mode={mode} path={path} onClose={onClose} />

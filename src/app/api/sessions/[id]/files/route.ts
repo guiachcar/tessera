@@ -3,6 +3,8 @@ import * as fs from 'fs/promises';
 import { requireAuthenticatedUserId } from '@/lib/auth/api-auth';
 import * as dbSessions from '@/lib/db/sessions';
 import { getDb } from '@/lib/db/database';
+import { jsonError } from '@/lib/http/json-error';
+import logger from '@/lib/logger';
 import { resolveSessionWorkspaceFilesystemRoot } from '@/lib/session/session-workspace-root';
 import { workspaceFileWatchManager } from '@/lib/workspace-files/workspace-file-watch-manager';
 import { walkWorkspaceFiles } from '@/lib/workspace-files/workspace-file-scan';
@@ -36,6 +38,22 @@ function listReferenceSessions(projectId: string, currentSessionId: string): {
   return { chats, tasks };
 }
 
+const LIST_DEADLINE_MS = 30_000;
+
+// The walk cannot be cancelled, but the HTTP response must not hang with it —
+// stalled network/FUSE/9P mounts otherwise keep the client spinner alive forever.
+function withListDeadline<T>(operation: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('workspace_list_timeout'));
+    }, LIST_DEADLINE_MS);
+    operation.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error) => { clearTimeout(timer); reject(error); },
+    );
+  });
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -67,7 +85,7 @@ export async function GET(
   }
 
   try {
-    const stat = await fs.stat(root);
+    const stat = await withListDeadline(fs.stat(root));
     if (!stat.isDirectory()) {
       return NextResponse.json({
         files: [],
@@ -78,7 +96,10 @@ export async function GET(
         workDir: root,
       });
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'workspace_list_timeout') {
+      return jsonError('walk_timeout', 'The workspace filesystem did not respond in time', 504);
+    }
     return NextResponse.json({
       files: [],
       chats: refs.chats,
@@ -90,8 +111,10 @@ export async function GET(
   }
 
   try {
-    const result = await workspaceFileWatchManager.ensureSnapshotForRoot(root)
-      ?? await walkWorkspaceFiles(root);
+    const result = await withListDeadline(
+      Promise.resolve(workspaceFileWatchManager.ensureSnapshotForRoot(root))
+        .then((snapshot) => snapshot ?? walkWorkspaceFiles(root)),
+    );
     return NextResponse.json({
       files: result.files,
       chats: refs.chats,
@@ -99,14 +122,11 @@ export async function GET(
       truncated: result.truncated,
       workDir: root,
     });
-  } catch {
-    return NextResponse.json({
-      files: [],
-      chats: refs.chats,
-      tasks: refs.tasks,
-      truncated: false,
-      reason: 'walk-failed',
-      workDir: root,
-    });
+  } catch (error) {
+    logger.warn({ error, sessionId: id, root }, 'Workspace file listing failed');
+    if (error instanceof Error && error.message === 'workspace_list_timeout') {
+      return jsonError('walk_timeout', 'The workspace filesystem did not respond in time', 504);
+    }
+    return jsonError('walk_failed', 'Could not list workspace files', 502);
   }
 }

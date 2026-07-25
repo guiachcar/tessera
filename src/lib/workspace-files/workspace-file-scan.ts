@@ -63,6 +63,15 @@ export function isIgnoredWorkspacePath(
 }
 
 export async function walkWorkspaceFiles(root: string): Promise<WorkspaceFileWalkResult> {
+  // \\wsl.localhost roots: running find inside the distro is ~10x faster than
+  // readdir over 9P. Lazy import dodges the module cycle; null falls through
+  // to the plain walk (non-WSL root, stopped distro, or command failure).
+  if (root.startsWith("\\\\") || root.startsWith("//")) {
+    const { listWorkspaceFilesViaWslUnc } = await import("./wsl-workspace-io");
+    const viaWsl = await listWorkspaceFilesViaWslUnc(root);
+    if (viaWsl) return viaWsl;
+  }
+
   const out: string[] = [];
   let truncated = false;
   const pathModule: PathModule = getFilesystemPathModule(root);

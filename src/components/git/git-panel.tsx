@@ -74,7 +74,8 @@ export function GitPanel({
   const isWindowsElectron = electronPlatform === "win32";
   const isLinuxElectron = electronPlatform === "linux";
   const controller = useGitPanelController(sessionId);
-  const [activePanelTab, setActivePanelTab] = useState<GitPanelTab>("git");
+  // null = no explicit user choice; fall back to the workspace-aware default.
+  const [activePanelTab, setActivePanelTab] = useState<GitPanelTab | null>(null);
   const openedTelemetryRef = useRef(false);
   const resolvedCloseLabel = closeLabel ?? t("chat.closeGitPanel");
 
@@ -83,11 +84,15 @@ export function GitPanel({
   );
   const showMemoryTab = supportsMemoryPanel(sessionProvider);
 
-  // Derive the visible tab instead of forcing state: if the stored selection
-  // is Context but this session can't show it, fall back to Git for rendering
+  // Derive the visible tab instead of forcing state: without an explicit user
+  // choice, non-git workspaces open on Files; if the stored selection is
+  // Context but this session can't show it, fall back to Git for rendering
   // while preserving the selection for supported providers.
+  const autoPanelTab: GitPanelTab =
+    controller.errorCode === "not_git_repo" ? "files" : "git";
+  const selectedPanelTab = activePanelTab ?? autoPanelTab;
   const effectivePanelTab: GitPanelTab =
-    !showMemoryTab && activePanelTab === "memory" ? "git" : activePanelTab;
+    !showMemoryTab && selectedPanelTab === "memory" ? "git" : selectedPanelTab;
 
   useEffect(() => {
     openedTelemetryRef.current = false;
