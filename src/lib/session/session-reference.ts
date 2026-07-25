@@ -47,6 +47,22 @@ export function formatContinueConversationPrompt(exportPath: string): string {
   ].join('\n');
 }
 
+export function formatSideChatPrompt(exportPath: string): string {
+  return [
+    `[${exportPath}]`,
+    '',
+    'You are a side chat attached to the main session exported above. The main',
+    'session may still be running in parallel in this same working directory.',
+    '',
+    '- Read the export from the end first: the last 200-300 lines carry the current task state, recent decisions, and changed files.',
+    '- Your job is to discuss, explain, and investigate: answer questions about what the main session is doing, inspect files, and brainstorm alternatives.',
+    '- Do NOT edit files unless the user explicitly asks you to; the main session owns the working tree.',
+    '- Keep answers focused on the question asked; the user is multitasking.',
+    '',
+    'Reply with a one-paragraph summary of where the main session currently stands.',
+  ].join('\n');
+}
+
 export function formatForkConversationPrompt(exportPath: string): string {
   return [
     `[${exportPath}]`,

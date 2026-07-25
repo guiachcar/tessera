@@ -12,10 +12,16 @@ const restCreate = read('../src/app/api/sessions/route.ts');
 const wsActions = read('../src/lib/ws/server-session-actions.ts');
 
 test('schema declares model, reasoning effort, and service tier columns', () => {
-  assert.match(schema, /SCHEMA_VERSION = 28/);
+  assert.match(schema, /SCHEMA_VERSION = 29/);
   assert.match(schema, /model\s+TEXT/);
   assert.match(schema, /reasoning_effort TEXT/);
   assert.match(schema, /service_tier\s+TEXT/);
+});
+
+test('database adds parent_session_id via migration v29 and the idempotent guard', () => {
+  assert.match(schema, /parent_session_id TEXT/);
+  assert.match(database, /fromVersion < 29/);
+  assert.match(database, /addColumnIfMissing\(db, 'sessions', 'parent_session_id'/);
 });
 
 test('database adds service_tier via migration v28 and the idempotent guard', () => {

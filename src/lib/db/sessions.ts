@@ -28,6 +28,7 @@ export interface SessionRow {
   task_id: string | null;
   chat_workflow_status: string | null;
   collection_id: string | null;
+  parent_session_id: string | null;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -125,6 +126,7 @@ export function createSession(
     worktreeManaged?: boolean;
     taskId?: string;
     collectionId?: string;
+    parentSessionId?: string | null;
     model?: string;
     reasoningEffort?: string | null;
     serviceTier?: string | null;
@@ -141,9 +143,9 @@ export function createSession(
   db.prepare(`
     INSERT INTO sessions (
       id, project_id, title, provider, provider_state, model, reasoning_effort, service_tier, work_dir, worktree_managed,
-      task_id, collection_id, sort_order, created_at, updated_at
+      task_id, collection_id, parent_session_id, sort_order, created_at, updated_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
   `).run(
     id,
     projectId,
@@ -157,6 +159,7 @@ export function createSession(
     options.worktreeManaged ? 1 : 0,
     options.taskId ?? null,
     options.collectionId ?? null,
+    options.parentSessionId ?? null,
     now,
     now
   );
@@ -503,6 +506,7 @@ export function mapSessionRowToApi(
     goal: extractSessionGoal(row.provider_state) ?? undefined,
     taskId: row.task_id ?? undefined,
     collectionId: row.collection_id ?? undefined,
+    parentSessionId: row.parent_session_id ?? undefined,
   };
 }
 
