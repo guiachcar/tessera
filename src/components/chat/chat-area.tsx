@@ -15,6 +15,7 @@ import { TodoStatusBar } from "./todo/todo-status-bar";
 import { InteractivePromptOverlay } from "./interactive-prompt-overlay";
 import { MessageSquare, AlertCircle, LoaderCircle, X as XIcon } from "lucide-react";
 import { ChatAreaSkeleton } from "./chat-area-skeleton";
+import { ChatSessionContext } from "./chat-session-context";
 import { Button } from "@/components/ui/button";
 import { usePanelStore, selectActiveTab, EMPTY_PANELS, TabIdContext } from "@/stores/panel-store";
 import { useTabStore } from "@/stores/tab-store";
@@ -176,6 +177,7 @@ export const ChatArea = memo(function ChatArea({
     connectionStatus !== "connected" || sessionStatus === "error";
 
   return (
+    <ChatSessionContext.Provider value={sessionId}>
     <div className="flex-1 flex flex-col h-full bg-(--chat-bg)">
       {!isPeek && shouldShowSessionHeader({ isTerminalSession, isSinglePanel }) && (
         <Header
@@ -262,6 +264,7 @@ export const ChatArea = memo(function ChatArea({
         </>
       )}
     </div>
+    </ChatSessionContext.Provider>
   );
 });
 

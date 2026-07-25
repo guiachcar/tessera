@@ -40,7 +40,11 @@ test("workspace file scan ignores heavy and hidden paths consistently", async ()
     const result = await walkWorkspaceFiles(root);
 
     assert.equal(result.truncated, false);
+    // Dotfiles are collected (the client filters them via the show-hidden
+    // toggle); only the always-ignored build/VCS dirs are pruned in the walk.
     assert.deepEqual(result.files, [
+      ".config/settings.json",
+      ".env",
       ".env.example",
       "src/a.ts",
       "src/b.ts",
