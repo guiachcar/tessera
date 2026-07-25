@@ -85,9 +85,25 @@ espelho) é o caminho mais confiável.
 
 ## Customizações ativas na custom
 
-| Feature | Branch | O que faz | Candidata a PR upstream? |
-|---------|--------|-----------|--------------------------|
-| `TESSERA_PORT` | feat/fixed-port | Fixa a porta do servidor Electron (sem scan a partir de 32123); erro claro se ocupada. Uso: link estável p/ Tailscale no celular | Sim — complementa o TESSERA_HOST que o upstream já documenta p/ tailnet |
+| Feature | Commit em split/features | O que faz | PR upstream? |
+|---------|--------------------------|-----------|--------------|
+| `TESSERA_PORT` | (feat/fixed-port, já na custom) | Porta fixa do servidor Electron; erro claro se ocupada | Sim |
+| `TESSERA_HOST` no Electron | d2c8139 | Servidor embutido aceita bind fora do loopback (tailnet) | Sim — par com TESSERA_PORT |
+| model-config.local.json | 60899dd | Overlay local editável sobre o catálogo remoto de modelos | Sim |
+| Provider Kimi Code (ACP) | 360c5b1 | Adapter + parser ACP com testes | Sim (abrir issue antes — CONTRIBUTING pede p/ provider novo) |
+| Provider Z.ai GLM | b3b4322 | Subclasse do ClaudeCodeAdapter com env overrides | Sim (idem) |
+| Side chat | 073cd24 | Sessão paralela de discussão anexa à principal (parent_session_id) | Sim |
+| Workspace file nav + WSL IO | 839c85d | NÃO integrada à custom: conflita com o workspace novo da v0.2.2; retrabalhar sobre a base nova antes de usar/propor | Depois do retrabalho |
+
+Atenção (migração de banco): o fork usa migração **v30** idempotente que
+re-garante terminal_provider_sessions + parent_session_id, porque o build
+custom pré-0.2.2 gravou v29=parent enquanto o upstream 0.2.2 usou
+v29=terminal. Ao portar o side chat para PR upstream, renumerar para a
+próxima versão livre do upstream na hora.
+
+Para abrir PR upstream: cherry-pick do commit da feature em branch nova
+baseada em `upstream/dev` (`git checkout -b pr/<nome> upstream/dev &&
+git cherry-pick <sha>`), rodar os checks do CONTRIBUTING e abrir contra `dev`.
 
 ## Estado em 2026-07-17
 
