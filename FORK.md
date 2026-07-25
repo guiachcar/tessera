@@ -93,7 +93,7 @@ espelho) é o caminho mais confiável.
 | Provider Kimi Code (ACP) | 360c5b1 | Adapter + parser ACP com testes | Sim (abrir issue antes — CONTRIBUTING pede p/ provider novo) |
 | Provider Z.ai GLM | b3b4322 | Subclasse do ClaudeCodeAdapter com env overrides | Sim (idem) |
 | Side chat | 073cd24 | Sessão paralela de discussão anexa à principal (parent_session_id) | Sim |
-| Workspace file nav + WSL IO | 839c85d | NÃO integrada à custom: conflita com o workspace novo da v0.2.2; retrabalhar sobre a base nova antes de usar/propor | Depois do retrabalho |
+| Workspace file nav + WSL IO | 31e73a7 + 529386f (retrabalho do 839c85d) | Integrada à custom sobre a base 0.2.2: find/stat/head via wsl.exe --exec com fallback (complementa a inotify bridge do upstream), deadlines/erros reais na rota files, fix do spinner preso, paths clicáveis no chat, preview de PDF/imagem, aba Files default sem git. Peças superadas pela 0.2.2 (explorer tree, refactor do file panel) descartadas. | Sim (dividir: WSL IO / spinner fix / chat links) |
 
 Atenção (migração de banco): o fork usa migração **v30** idempotente que
 re-garante terminal_provider_sessions + parent_session_id, porque o build
