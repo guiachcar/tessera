@@ -87,6 +87,7 @@ export function useGitPanelController(sessionId: string | null) {
     return !useGitPanelStore.getState().dataBySessionId[sessionId];
   });
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [selectedPath, setSelectedPath] = useState<string | null>(
     () => initialCache?.selectedPath ?? null,
   );
@@ -127,6 +128,7 @@ export function useGitPanelController(sessionId: string | null) {
 
     if (!sessionId || isTransientSessionId(sessionId)) {
       setError(null);
+      setErrorCode(null);
       setLoading(false);
       return;
     }
@@ -134,6 +136,7 @@ export function useGitPanelController(sessionId: string | null) {
     if (!silent) {
       setLoading(true);
       setError(null);
+      setErrorCode(null);
     }
 
     try {
@@ -141,16 +144,15 @@ export function useGitPanelController(sessionId: string | null) {
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
+        const payloadErrorCode =
+          (payload as { error?: { code?: string } } | null)?.error?.code ?? null;
         // Race: optimistic session id resolved on the client before the DB
         // row is visible. Stay quiet — the next sessionId change (or a retry
         // via visibilitychange) will pick up the real state.
-        if (
-          response.status === 404 &&
-          (payload as { error?: { code?: string } } | null)?.error?.code ===
-            "session_not_found"
-        ) {
+        if (response.status === 404 && payloadErrorCode === "session_not_found") {
           return;
         }
+        if (!silent) setErrorCode(payloadErrorCode);
         throw new Error(
           extractGitPanelErrorMessage(payload, "Failed to load git summary."),
         );
@@ -158,6 +160,7 @@ export function useGitPanelController(sessionId: string | null) {
 
       applyGitPanelData(sessionId, payload as GitPanelData);
       setError(null);
+      setErrorCode(null);
     } catch (nextError) {
       if (!silent) {
         setError(
@@ -868,6 +871,7 @@ export function useGitPanelController(sessionId: string | null) {
     diffError,
     diffLoading,
     error,
+    errorCode,
     fetching,
     handleCommit,
     handleCreatePr,

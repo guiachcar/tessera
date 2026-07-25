@@ -34,6 +34,7 @@ export function useWorkspaceFileList(sessionId: string | null): WorkspaceFileLis
     workDir: null,
   }));
   const requestSeqRef = useRef(0);
+  const inFlightSeqRef = useRef(0);
 
   const loadFiles = useCallback((options?: {
     signal?: AbortSignal;
@@ -51,8 +52,14 @@ export function useWorkspaceFileList(sessionId: string | null): WorkspaceFileLis
         return;
       }
 
+      // Fallback polling must not stack requests: a slow listing otherwise
+      // gets superseded every tick, no request ever "wins", and the loading
+      // flag never clears (infinite spinner).
+      if (options?.silent && inFlightSeqRef.current !== 0) return;
+
       const requestSeq = requestSeqRef.current + 1;
       requestSeqRef.current = requestSeq;
+      inFlightSeqRef.current = requestSeq;
 
       if (!options?.silent) {
         setState((current) => ({
@@ -67,10 +74,14 @@ export function useWorkspaceFileList(sessionId: string | null): WorkspaceFileLis
       try {
         const response = await fetchWithTimeout(
           `/api/sessions/${encodeURIComponent(sessionId)}/files`,
-          { signal: options?.signal, retries: 1 },
+          { signal: options?.signal, retries: 1, timeoutMs: 45_000 },
         );
         const payload = (await response.json().catch(() => null)) as WorkspaceFilesResponse | null;
-        if (!response.ok) throw new Error("Failed to load files.");
+        if (!response.ok) {
+          const serverMessage =
+            (payload as { error?: { message?: string } } | null)?.error?.message;
+          throw new Error(serverMessage || "Failed to load files.");
+        }
 
         if (requestSeqRef.current !== requestSeq) return;
         const nextFiles = Array.isArray(payload?.files) ? payload.files : [];
@@ -98,6 +109,8 @@ export function useWorkspaceFileList(sessionId: string | null): WorkspaceFileLis
               truncated: false,
               workDir: null,
             });
+      } finally {
+        if (inFlightSeqRef.current === requestSeq) inFlightSeqRef.current = 0;
       }
     })();
   }, [sessionId]);

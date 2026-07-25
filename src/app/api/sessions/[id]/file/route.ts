@@ -8,7 +8,17 @@ import {
   getFilesystemPathModule,
   isAbsoluteFilesystemPath,
 } from "@/lib/filesystem/host-path";
-import { resolveSessionWorkspaceFilesystemRoot } from "@/lib/session/session-workspace-root";
+import {
+  resolveSessionWorkspaceFilesystemRoot,
+  resolveSessionWorkspaceRoot,
+} from "@/lib/session/session-workspace-root";
+import {
+  readWorkspaceFileViaWsl,
+  resolveWslWorkspaceRelativePath,
+  shouldUseWslWorkspaceIo,
+  statWorkspaceFileViaWsl,
+  WorkspaceWslIoError,
+} from "@/lib/workspace-files/wsl-workspace-io";
 
 const MAX_TEXT_FILE_BYTES = 512 * 1024;
 const MAX_RAW_FILE_BYTES = 25 * 1024 * 1024;
@@ -158,6 +168,59 @@ function inferContentType(filePath: string): string {
   return aliases[ext] ?? "application/octet-stream";
 }
 
+// Windows host + WSL workspace: realpath/open over \\wsl.localhost (9P)
+// routinely blows the 2s fs deadline; read the file inside WSL instead.
+async function serveWorkspaceFileViaWsl(
+  sessionId: string,
+  displayRoot: string,
+  workDirForResponse: string,
+  request: NextRequest,
+): Promise<NextResponse> {
+  const rawPath = request.nextUrl.searchParams.get("path") ?? "";
+  if (isAbsoluteFilesystemPath(rawPath.replace(/\\/g, "/"))) {
+    throw new WorkspaceFileError("invalid_file_path", "File path must be relative", 400);
+  }
+  const relativePath = resolveWslWorkspaceRelativePath(rawPath);
+  const fileStat = await statWorkspaceFileViaWsl(displayRoot, relativePath);
+  if (!fileStat.isFile) {
+    throw new WorkspaceFileError("invalid_file_path", "Path is not a file", 400);
+  }
+
+  if (request.nextUrl.searchParams.get("raw") === "1") {
+    if (fileStat.size > MAX_RAW_FILE_BYTES) {
+      throw new WorkspaceFileError("file_too_large", "File is too large to preview", 413);
+    }
+    const buffer = await readWorkspaceFileViaWsl(displayRoot, relativePath, MAX_RAW_FILE_BYTES);
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type": inferContentType(relativePath),
+        "Cache-Control": "private, max-age=30",
+        "Content-Length": String(buffer.byteLength),
+      },
+    });
+  }
+
+  const buffer = await readWorkspaceFileViaWsl(
+    displayRoot,
+    relativePath,
+    MAX_TEXT_FILE_BYTES + 1,
+  );
+  const binary = isLikelyBinary(buffer);
+  const truncated = fileStat.size > MAX_TEXT_FILE_BYTES || buffer.byteLength > MAX_TEXT_FILE_BYTES;
+  const contentBuffer = buffer.subarray(0, Math.min(buffer.byteLength, MAX_TEXT_FILE_BYTES));
+
+  return NextResponse.json({
+    sessionId,
+    workDir: workDirForResponse,
+    path: relativePath,
+    content: binary ? "" : contentBuffer.toString("utf8"),
+    language: inferLanguage(relativePath),
+    size: fileStat.size,
+    truncated,
+    binary,
+  });
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -173,6 +236,11 @@ export async function GET(
     const root = await resolveSessionWorkspaceFilesystemRoot(id);
     if (!root) {
       return jsonError("missing_work_dir", "Session has no working directory", 422);
+    }
+
+    const displayRoot = resolveSessionWorkspaceRoot(id);
+    if (displayRoot && shouldUseWslWorkspaceIo(displayRoot, root)) {
+      return await serveWorkspaceFileViaWsl(id, displayRoot, root, request);
     }
 
     const rawPath = request.nextUrl.searchParams.get("path") ?? "";
@@ -226,7 +294,7 @@ export async function GET(
       binary,
     });
   } catch (error) {
-    if (error instanceof WorkspaceFileError) {
+    if (error instanceof WorkspaceFileError || error instanceof WorkspaceWslIoError) {
       return jsonError(error.code, error.message, error.status);
     }
 

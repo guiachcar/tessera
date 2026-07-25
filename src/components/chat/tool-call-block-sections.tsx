@@ -17,6 +17,9 @@ export function ToolCallBlockHeader({
   isError,
   isRunning,
   onToggle,
+  fileLinkTitle,
+  onOpenFile,
+  onOpenFilePinned,
 }: {
   toolName: string;
   displayName: string;
@@ -27,6 +30,9 @@ export function ToolCallBlockHeader({
   isError: boolean;
   isRunning: boolean;
   onToggle: () => void;
+  fileLinkTitle?: string;
+  onOpenFile?: () => void;
+  onOpenFilePinned?: () => void;
 }) {
   return (
     <button
@@ -38,7 +44,27 @@ export function ToolCallBlockHeader({
       <div className="min-w-0 flex-1">
         <div className="text-xs font-medium text-(--text-secondary)">{displayName}</div>
         {summary && (
-          <div className="truncate font-mono text-[11px] text-(--text-muted)">{summary}</div>
+          <div className="truncate font-mono text-[11px] text-(--text-muted)">
+            {onOpenFile ? (
+              <span
+                role="link"
+                tabIndex={0}
+                title={fileLinkTitle}
+                onClick={(event) => { event.stopPropagation(); onOpenFile(); }}
+                onDoubleClick={(event) => { event.stopPropagation(); onOpenFilePinned?.(); }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.stopPropagation();
+                    onOpenFile();
+                  }
+                }}
+                className="cursor-pointer underline-offset-2 hover:text-(--text-primary) hover:underline"
+                data-testid="tool-call-file-link"
+              >
+                {summary}
+              </span>
+            ) : summary}
+          </div>
         )}
       </div>
       <div className="ml-auto flex h-3 w-3 shrink-0 items-center justify-center">

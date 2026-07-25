@@ -12,6 +12,7 @@ import { MESSAGE_BODY_OFFSET_CLASS } from './message-layout';
 import { MessageRowShell } from './message-row-shell';
 import { ImageLightbox } from './image-lightbox';
 import { buildToolImageUrl, isImagePath } from '@/lib/tool-results/tool-image';
+import { getToolCallFilePathParam, useChatWorkspaceFileTarget } from './use-chat-file-link';
 
 // --- Layout threshold ---
 const SUMMARY_BAR_MIN = 4;
@@ -159,6 +160,9 @@ function CompactRow({
   const { toolName, toolParams, status, toolDisplay } = toolCall;
   const isError = status === 'error';
   const isRunning = status === 'running';
+  const fileTarget = useChatWorkspaceFileTarget(
+    getToolCallFilePathParam(toolName, toolCall.toolKind, toolParams),
+  );
 
   const statusColor = isError
     ? TOOL_STATUS_TEXT.error
@@ -190,7 +194,27 @@ function CompactRow({
         {shortenToolName(toolName)}
       </span>
       <span className="text-[11px] text-(--text-muted) truncate font-mono flex-1 min-w-0">
-        {getToolSummary(toolName, toolParams, toolCall.toolKind, toolDisplay) || '\u00A0'}
+        {fileTarget ? (
+          <span
+            role="link"
+            tabIndex={0}
+            title={`Open ${fileTarget.relativePath}`}
+            onClick={(event) => { event.stopPropagation(); fileTarget.preview(); }}
+            onDoubleClick={(event) => { event.stopPropagation(); fileTarget.openPinned(); }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.stopPropagation();
+                fileTarget.preview();
+              }
+            }}
+            className="cursor-pointer underline-offset-2 hover:text-(--text-primary) hover:underline"
+            data-testid="tool-call-file-link"
+          >
+            {getToolSummary(toolName, toolParams, toolCall.toolKind, toolDisplay) || '\u00A0'}
+          </span>
+        ) : (
+          getToolSummary(toolName, toolParams, toolCall.toolKind, toolDisplay) || '\u00A0'
+        )}
       </span>
       <div className="shrink-0">
         {isLoading && <Loader2 className="w-2.5 h-2.5 text-(--accent) animate-spin" />}

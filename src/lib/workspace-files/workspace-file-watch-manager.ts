@@ -1,6 +1,8 @@
 import * as fs from "fs/promises";
 import chokidar, { type FSWatcher } from "chokidar";
 import { getFilesystemPathModule } from "@/lib/filesystem/host-path";
+import { isWindowsHostedWslFilesystemPath } from "@/lib/filesystem/path-environment";
+import { getRuntimePlatform } from "@/lib/system/runtime-platform";
 import logger from "@/lib/logger";
 import { resolveSessionWorkspaceFilesystemRoot } from "@/lib/session/session-workspace-root";
 import type { ServerTransportMessage } from "@/lib/ws/message-types";
@@ -111,6 +113,20 @@ class WorkspaceFileWatchManager {
         subscriberId: options.subscriberId,
         status: "fallback",
         reason: "missing_work_dir",
+      });
+      return;
+    }
+
+    // Native watchers never fire over \\wsl.localhost (9P) and the bootstrap
+    // walk is painfully slow there; skip straight to client-side polling. The
+    // /files route serves those roots by listing inside WSL.
+    if (getRuntimePlatform() === "win32" && isWindowsHostedWslFilesystemPath(root)) {
+      options.sendToUser(options.userId, {
+        type: "workspace_file_watch_status",
+        sessionId: options.sessionId,
+        subscriberId: options.subscriberId,
+        status: "fallback",
+        reason: "wsl_workspace",
       });
       return;
     }

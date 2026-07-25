@@ -86,6 +86,24 @@ function buildWorkspaceRawFileUrl(sessionId: string, filePath: string): string {
   return `/api/sessions/${encodeURIComponent(sessionId)}/file?path=${encodeURIComponent(filePath)}&raw=1`;
 }
 
+const PREVIEWABLE_IMAGE_EXTENSIONS = new Set([
+  "avif",
+  "bmp",
+  "gif",
+  "jpeg",
+  "jpg",
+  "png",
+  "svg",
+  "webp",
+]);
+
+function getBinaryPreviewKind(filePath: string): "pdf" | "image" | null {
+  const extension = filePath.split(".").pop()?.toLowerCase() ?? "";
+  if (extension === "pdf") return "pdf";
+  if (PREVIEWABLE_IMAGE_EXTENSIONS.has(extension)) return "image";
+  return null;
+}
+
 function useCanUseElectronFileActions(): boolean {
   return useSyncExternalStore(
     subscribeToStaticClientValue,
@@ -309,6 +327,58 @@ export function WorkspaceCodeView({
   }
 
   if (fileData?.binary) {
+    const binaryPreviewKind = getBinaryPreviewKind(path);
+    const rawFileUrl = sourceSessionId ? buildWorkspaceRawFileUrl(sourceSessionId, path) : null;
+
+    if (binaryPreviewKind && rawFileUrl) {
+      return (
+        <div className="flex h-full min-h-0 flex-col bg-(--chat-bg)">
+          <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-(--chat-header-border) px-4">
+            <div className="flex min-w-0 items-center gap-2">
+              <FileCode2 className="h-4 w-4 shrink-0 text-(--text-muted)" />
+              <div className="min-w-0">
+                <p className="truncate font-mono text-sm text-(--text-primary)">{path}</p>
+                <p className="truncate text-[10px] uppercase tracking-[0.14em] text-(--text-muted)">
+                  {binaryPreviewKind}
+                  {fileData ? ` · ${formatBytes(fileData.size)}` : ""}
+                </p>
+              </div>
+            </div>
+            {onClose ? (
+              <Tooltip content="Close">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={onClose}
+                  aria-label="Close file panel"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </Tooltip>
+            ) : null}
+          </div>
+          {binaryPreviewKind === "pdf" ? (
+            <iframe
+              src={rawFileUrl}
+              title={path}
+              className="min-h-0 w-full flex-1 border-0 bg-white"
+            />
+          ) : (
+            <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">
+              {/* eslint-disable-next-line @next/next/no-img-element -- raw workspace asset, not an optimizable route */}
+              <img
+                src={rawFileUrl}
+                alt={path}
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return <EmptyState title="Binary file" body="Preview is unavailable for binary content." icon="binary" />;
   }
 

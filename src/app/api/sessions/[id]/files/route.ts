@@ -3,9 +3,35 @@ import * as fs from 'fs/promises';
 import { requireAuthenticatedUserId } from '@/lib/auth/api-auth';
 import * as dbSessions from '@/lib/db/sessions';
 import { getDb } from '@/lib/db/database';
-import { resolveSessionWorkspaceFilesystemRoot } from '@/lib/session/session-workspace-root';
+import { jsonError } from '@/lib/http/json-error';
+import logger from '@/lib/logger';
+import {
+  resolveSessionWorkspaceFilesystemRoot,
+  resolveSessionWorkspaceRoot,
+} from '@/lib/session/session-workspace-root';
 import { workspaceFileWatchManager } from '@/lib/workspace-files/workspace-file-watch-manager';
 import { walkWorkspaceFiles } from '@/lib/workspace-files/workspace-file-scan';
+import {
+  listWorkspaceFilesViaWsl,
+  shouldUseWslWorkspaceIo,
+  WorkspaceWslIoError,
+} from '@/lib/workspace-files/wsl-workspace-io';
+
+const LIST_DEADLINE_MS = 30_000;
+
+// The walk cannot be cancelled, but the HTTP response must not hang with it —
+// stalled network/FUSE/9P mounts otherwise keep the client spinner alive forever.
+function withListDeadline<T>(operation: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('workspace_list_timeout'));
+    }, LIST_DEADLINE_MS);
+    operation.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error) => { clearTimeout(timer); reject(error); },
+    );
+  });
+}
 
 interface SessionRef {
   sessionId: string;
@@ -54,8 +80,9 @@ export async function GET(
 
   const refs = projectId ? listReferenceSessions(projectId, id) : { chats: [], tasks: [] };
 
+  const displayRoot = resolveSessionWorkspaceRoot(id);
   const root = await resolveSessionWorkspaceFilesystemRoot(id);
-  if (!root) {
+  if (!displayRoot || !root) {
     return NextResponse.json({
       files: [],
       chats: refs.chats,
@@ -66,8 +93,30 @@ export async function GET(
     });
   }
 
+  // Windows host + WSL workspace: Node fs over \\wsl.localhost (9P) is 10x+
+  // slower and the watcher never fires — run the listing inside WSL instead,
+  // the same way the git panel already runs git.
+  if (shouldUseWslWorkspaceIo(displayRoot, root)) {
+    try {
+      const result = await withListDeadline(listWorkspaceFilesViaWsl(displayRoot));
+      return NextResponse.json({
+        files: result.files,
+        chats: refs.chats,
+        tasks: refs.tasks,
+        truncated: result.truncated,
+        workDir: root,
+      });
+    } catch (error) {
+      logger.warn({ error, sessionId: id, displayRoot }, 'WSL workspace file listing failed');
+      if (error instanceof WorkspaceWslIoError) {
+        return jsonError(error.code, error.message, error.status);
+      }
+      return jsonError('walk_failed', 'Could not list workspace files', 502);
+    }
+  }
+
   try {
-    const stat = await fs.stat(root);
+    const stat = await withListDeadline(fs.stat(root));
     if (!stat.isDirectory()) {
       return NextResponse.json({
         files: [],
@@ -78,7 +127,10 @@ export async function GET(
         workDir: root,
       });
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'workspace_list_timeout') {
+      return jsonError('walk_timeout', 'The workspace filesystem did not respond in time', 504);
+    }
     return NextResponse.json({
       files: [],
       chats: refs.chats,
@@ -90,8 +142,10 @@ export async function GET(
   }
 
   try {
-    const result = await workspaceFileWatchManager.getIndexedSnapshotForRoot(root)
-      ?? await walkWorkspaceFiles(root);
+    const result = await withListDeadline(
+      workspaceFileWatchManager.getIndexedSnapshotForRoot(root)
+        .then((snapshot) => snapshot ?? walkWorkspaceFiles(root)),
+    );
     return NextResponse.json({
       files: result.files,
       chats: refs.chats,
@@ -99,14 +153,11 @@ export async function GET(
       truncated: result.truncated,
       workDir: root,
     });
-  } catch {
-    return NextResponse.json({
-      files: [],
-      chats: refs.chats,
-      tasks: refs.tasks,
-      truncated: false,
-      reason: 'walk-failed',
-      workDir: root,
-    });
+  } catch (error) {
+    logger.warn({ error, sessionId: id, root }, 'Workspace file listing failed');
+    if (error instanceof Error && error.message === 'workspace_list_timeout') {
+      return jsonError('walk_timeout', 'The workspace filesystem did not respond in time', 504);
+    }
+    return jsonError('walk_failed', 'Could not list workspace files', 502);
   }
 }
