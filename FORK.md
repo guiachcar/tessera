@@ -83,6 +83,12 @@ de wine para editar os recursos do .exe. Se falhar no WSL, rodar o build no
 Windows nativo (Node instalado no Windows, mesmo repo via \\wsl$ ou clone
 espelho) é o caminho mais confiável.
 
+## Customizações ativas na custom
+
+| Feature | Branch | O que faz | Candidata a PR upstream? |
+|---------|--------|-----------|--------------------------|
+| `TESSERA_PORT` | feat/fixed-port | Fixa a porta do servidor Electron (sem scan a partir de 32123); erro claro se ocupada. Uso: link estável p/ Tailscale no celular | Sim — complementa o TESSERA_HOST que o upstream já documenta p/ tailnet |
+
 ## Estado em 2026-07-17
 
 - Fork criado a partir de upstream/main `0ed9b71` (pós v0.2.1).
