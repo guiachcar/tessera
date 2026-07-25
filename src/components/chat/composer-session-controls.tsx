@@ -758,6 +758,11 @@ function ComposerSessionControlsInner({
   };
 
   const accessOptions = getAccessOptions(providerIdForSticky, sessionOptions);
+  // Providers whose session options expose no 'plan' mode (e.g. Kimi's ACP
+  // server only has a default mode) hide the Plan toggle entirely.
+  const supportsPlanMode = sessionOptions
+    ? sessionOptions.modeOptions.some((option) => option.value === 'plan')
+    : true;
   const isAccessLocked = sessionOptions?.planLocksAccess === true && sessionMode === 'plan';
   const isRuntimeAccessDisabled = session.isRunning && (
     sessionOptions?.runtimeAccessChange === false
@@ -820,7 +825,7 @@ function ComposerSessionControlsInner({
     const bindings: Record<string, (event: KeyboardEvent) => void> = {};
     if (planShortcut) {
       bindings[planShortcut] = (event) => {
-        if (!isActivePanelSession()) return;
+        if (!isActivePanelSession() || !supportsPlanMode) return;
         event.preventDefault();
         handlePlanToggle();
       };
@@ -859,6 +864,7 @@ function ComposerSessionControlsInner({
     reasoningShortcut,
     sessionId,
     surfaceActive,
+    supportsPlanMode,
   ]);
 
   return (
@@ -897,18 +903,20 @@ function ComposerSessionControlsInner({
           />
         )}
 
-        <ComposerToggleButton
-          icon={Workflow}
-          label={modeToggleLabel}
-          pressed={sessionMode === 'plan'}
-          onClick={handlePlanToggle}
-          testId="plan-mode-toggle"
-          compact={isInline}
-          controlId="mode"
-          title={modeToggleTitle}
-          shortcutId="toggle-plan-mode"
-          shortcutLabel={t('shortcut.togglePlanMode')}
-        />
+        {supportsPlanMode && (
+          <ComposerToggleButton
+            icon={Workflow}
+            label={modeToggleLabel}
+            pressed={sessionMode === 'plan'}
+            onClick={handlePlanToggle}
+            testId="plan-mode-toggle"
+            compact={isInline}
+            controlId="mode"
+            title={modeToggleTitle}
+            shortcutId="toggle-plan-mode"
+            shortcutLabel={t('shortcut.togglePlanMode')}
+          />
+        )}
 
         <ComposerControlDropdown
           icon={Shield}
@@ -952,7 +960,7 @@ function ComposerSessionControlsInner({
               modelOptions={sessionOptions?.modelOptions ?? []}
               selectedModel={model}
               loadingLabel={t('settings.model.loadingOptions')}
-              allowCustomModel={providerIdForSticky === 'claude-code'}
+              allowCustomModel={providerIdForSticky === 'claude-code' || providerIdForSticky === 'zai'}
               customLabel={t('settings.model.customLabel')}
               customPlaceholder={t('settings.model.customPlaceholder')}
               customApplyLabel={t('settings.model.customApply')}

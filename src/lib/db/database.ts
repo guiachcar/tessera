@@ -990,6 +990,28 @@ function runMigrations(db: DatabaseWrapper, fromVersion: number): void {
     `);
     logger.info('Migration v29 applied: terminal provider session registry added');
   }
+
+  if (fromVersion < 30) {
+    // Fork note: a pre-0.2.2 custom build shipped sessions.parent_session_id
+    // as migration v29 while upstream 0.2.2 used v29 for the terminal session
+    // registry. v30 re-ensures both (idempotent) so databases coming from
+    // either v29 lineage converge to the same shape.
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS terminal_provider_sessions (
+        provider_id         TEXT NOT NULL,
+        provider_session_id TEXT NOT NULL,
+        tessera_session_id  TEXT NOT NULL UNIQUE,
+        transcript_path     TEXT,
+        created_at          TEXT NOT NULL,
+        updated_at          TEXT NOT NULL,
+        PRIMARY KEY (provider_id, provider_session_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_terminal_provider_sessions_tessera
+        ON terminal_provider_sessions(tessera_session_id);
+    `);
+    addColumnIfMissing(db, 'sessions', 'parent_session_id', 'TEXT');
+    logger.info('Migration v30 applied: terminal session registry ensured and sessions.parent_session_id added');
+  }
 }
 
 /**

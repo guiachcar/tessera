@@ -257,6 +257,12 @@ export interface UnifiedSession {
    */
   collectionId?: string;
 
+  /**
+   * Session this side chat is attached to.
+   * Undefined for regular sessions.
+   */
+  parentSessionId?: string;
+
   /** Project-local display order. Lower values appear first. */
   sortOrder: number;
 

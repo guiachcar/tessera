@@ -160,6 +160,7 @@ function mapApiSessionToUnified(
     hasStarted: s.hasStarted ?? s.isRunning ?? false,
     taskId: s.taskId ?? undefined,
     collectionId: s.collectionId ?? undefined,
+    parentSessionId: s.parentSessionId ?? undefined,
     diffStats: s.diffStats ?? undefined,
   };
   return runtimeLiveness

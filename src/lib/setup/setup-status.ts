@@ -69,6 +69,8 @@ export interface SetupStatusResponse {
     claudeCode: string;
     codex: string;
     opencode: string;
+    kimi: string;
+    zai: string;
     git: string;
     gh: string;
   };
@@ -90,6 +92,8 @@ export const SETUP_INSTALL_LINKS = {
   claudeCode: 'https://docs.anthropic.com/en/docs/claude-code/setup',
   codex: 'https://developers.openai.com/codex/cli',
   opencode: 'https://opencode.ai/docs/cli/',
+  kimi: 'https://moonshotai.github.io/kimi-cli/en/',
+  zai: 'https://docs.z.ai/devpack/tool/claude',
   git: 'https://git-scm.com/downloads',
   gh: 'https://cli.github.com/',
 } as const;
@@ -226,7 +230,7 @@ function summarizeAiCli(providers: SetupProviderState[]): SetupToolState {
   return {
     status: 'missing',
     reasonCode: 'ai_cli_missing',
-    message: 'Install Claude Code, Codex, or OpenCode to create chat and task sessions.',
+    message: 'Install Claude Code, Codex, OpenCode, or Kimi Code to create chat and task sessions.',
     installUrl: SETUP_INSTALL_LINKS.claudeCode,
   };
 }

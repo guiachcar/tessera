@@ -67,6 +67,14 @@ const SUPPORTED_PROVIDERS = [
     providerId: 'opencode',
     displayName: 'OpenCode',
   },
+  {
+    providerId: 'kimi',
+    displayName: 'Kimi Code',
+  },
+  {
+    providerId: 'zai',
+    displayName: 'Z.ai GLM',
+  },
 ] as const;
 
 interface SetupClientProps {
@@ -921,6 +929,8 @@ function getProviderInstallUrl(providerId: string, status: SetupStatusResponse):
   if (providerId === 'claude-code') return status.installLinks.claudeCode;
   if (providerId === 'codex') return status.installLinks.codex;
   if (providerId === 'opencode') return status.installLinks.opencode;
+  if (providerId === 'kimi') return status.installLinks.kimi;
+  if (providerId === 'zai') return status.installLinks.zai;
   return null;
 }
 

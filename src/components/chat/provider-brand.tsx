@@ -67,6 +67,30 @@ function OpenCodeLogo(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+function KimiLogo(props: SVGProps<SVGSVGElement>) {
+  // Crescent-moon mark referencing Moonshot AI.
+  return (
+    <svg viewBox="0 0 24 24" {...props}>
+      <path
+        fill="currentColor"
+        d="M14.5 2.1a10 10 0 1 0 7.4 7.4 8 8 0 0 1-7.4-7.4Zm-2.4 2.6a8 8 0 0 1 7.2 7.2 8 8 0 1 1-7.2-7.2Z"
+      />
+      <circle cx="12" cy="12" r="4.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ZaiLogo(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...props}>
+      <path
+        fill="currentColor"
+        d="M4 4h16v3.2L9.9 17.6H20V20H4v-3.2L14.1 6.4H4V4Z"
+      />
+    </svg>
+  );
+}
+
 function GenericBotLogo(props: SVGProps<SVGSVGElement>) {
   return <Bot {...props} />;
 }
@@ -110,6 +134,32 @@ const PROVIDER_BRANDS: Record<string, ProviderBrandMeta> = {
       icon: 'var(--provider-opencode-icon)',
     },
     Icon: OpenCodeLogo,
+  },
+  kimi: {
+    id: 'kimi',
+    label: 'Kimi',
+    displayName: 'Kimi Code',
+    tone: {
+      avatarBg: 'var(--provider-kimi-avatar-bg)',
+      avatarFg: 'var(--provider-kimi-avatar-fg)',
+      softBg: 'var(--provider-kimi-soft-bg)',
+      softBorder: 'var(--provider-kimi-soft-border)',
+      icon: 'var(--provider-kimi-icon)',
+    },
+    Icon: KimiLogo,
+  },
+  zai: {
+    id: 'zai',
+    label: 'Z.ai',
+    displayName: 'Z.ai GLM',
+    tone: {
+      avatarBg: 'var(--provider-zai-avatar-bg)',
+      avatarFg: 'var(--provider-zai-avatar-fg)',
+      softBg: 'var(--provider-zai-soft-bg)',
+      softBorder: 'var(--provider-zai-soft-border)',
+      icon: 'var(--provider-zai-icon)',
+    },
+    Icon: ZaiLogo,
   },
 };
 

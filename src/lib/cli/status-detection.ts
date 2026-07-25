@@ -110,9 +110,20 @@ export function classifyOpenCodeStatus(
   versionResult: ExecResult,
   commandSource: CliCommandSource,
 ): { status: CliConnectionStatus; detectionReason: CliDetectionReason } {
-  // A runnable probe (success, timeout, or non-zero exit) proves the binary
-  // exists — OpenCode never gates on login, so that's all we need. Only a real
-  // spawn failure (ENOENT/ENOEXEC/EACCES/EPERM) is "not installed".
+  return classifyVersionOnlyStatus(versionResult, commandSource);
+}
+
+/**
+ * Resolves a provider's connection status from the version probe alone.
+ * Used by CLIs with no read-only auth-status command (OpenCode, Kimi): a
+ * runnable probe (success, timeout, or non-zero exit) proves the binary
+ * exists, and login problems surface at session start instead. Only a real
+ * spawn failure (ENOENT/ENOEXEC/EACCES/EPERM) is "not installed".
+ */
+export function classifyVersionOnlyStatus(
+  versionResult: ExecResult,
+  commandSource: CliCommandSource,
+): { status: CliConnectionStatus; detectionReason: CliDetectionReason } {
   if (isVersionProbeRunnable(versionResult)) {
     return { status: 'connected', detectionReason: 'connected' };
   }

@@ -11,6 +11,7 @@ interface PersistCreatedSessionRecordOptions {
   resolvedWorkDir: string;
   sessionId: string;
   taskId?: string;
+  parentSessionId?: string | null;
   title: string;
   executionMode: AgentExecutionMode;
   worktreeBranch?: string;
@@ -64,6 +65,7 @@ export function persistCreatedSessionRecord(
       worktreeManaged: options.worktreeManaged,
       taskId: options.taskId,
       collectionId: options.collectionId,
+      parentSessionId: options.parentSessionId,
       model: options.model,
       reasoningEffort: options.reasoningEffort,
       serviceTier: options.serviceTier,

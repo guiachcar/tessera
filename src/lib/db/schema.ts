@@ -4,7 +4,7 @@
  * This DB is the source of truth for projects, sessions, and conversation messages.
  */
 
-export const SCHEMA_VERSION = 29;
+export const SCHEMA_VERSION = 30;
 
 export const CREATE_TABLES = `
 CREATE TABLE IF NOT EXISTS _meta (
@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   task_id          TEXT,
   chat_workflow_status TEXT,
   collection_id    TEXT,
+  parent_session_id TEXT,
   sort_order       INTEGER NOT NULL DEFAULT 0,
   created_at       TEXT NOT NULL,
   updated_at       TEXT NOT NULL

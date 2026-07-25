@@ -32,7 +32,10 @@ process.env.TESSERA_PRODUCTION_DB = '1';
 snapshotTelemetryStartupDataState();
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = '127.0.0.1';
+// Loopback by default; TESSERA_HOST (e.g. a Tailscale IP or 0.0.0.0) opts the
+// embedded server into remote access. The Electron auth bypass stays active,
+// so only bind to interfaces you trust (tailnet IP recommended).
+const hostname = process.env.TESSERA_HOST?.trim() || '127.0.0.1';
 const port = parseInt(process.env.PORT || '3000', 10);
 const isElectronChild = process.env.ELECTRON_CHILD === '1';
 const originalParentPid = process.ppid;

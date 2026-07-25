@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useContext } from 'react';
-import { Pencil, Check, Hash, X as XIcon, MoreHorizontal, GitBranch, Search } from 'lucide-react';
+import { Pencil, Check, Hash, X as XIcon, MoreHorizontal, GitBranch, MessagesSquare, Search } from 'lucide-react';
 import { getTitleGeneratingStyle } from '@/lib/title-generating-style';
 import { useSessionStore } from '@/stores/session-store';
 import { useTaskStore } from '@/stores/task-store';
 import { usePanelStore, selectActiveTab, EMPTY_PANELS, TabIdContext } from '@/stores/panel-store';
 import { useSessionCrud } from '@/hooks/use-session-crud';
 import { useIsSessionAwaitingUser } from '@/hooks/use-session-awaiting-user';
+import { useSideChat } from '@/hooks/use-side-chat';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { TaskContextMenu } from './task-context-menu';
@@ -56,6 +57,8 @@ export function Header({ sessionId, panelId, isSinglePanel = false, search }: He
   const { renameSession, generateTitle, deleteSession } = useSessionCrud();
   const isProcessing = useIsSessionProcessing(sessionId);
   const isAwaitingUser = useIsSessionAwaitingUser(sessionId, session?.kind);
+  const { openSideChat, isOpeningSideChat } = useSideChat(sessionId, panelId);
+  const isSideChatSession = Boolean(session?.parentSessionId);
 
   // Multi-panel unread indicator — active panel's unread is auto-cleared by
   // panel-wrapper, so this only appears on inactive panel headers.
@@ -341,6 +344,25 @@ export function Header({ sessionId, panelId, isSinglePanel = false, search }: He
 
         {/* Right: actions */}
         <div className="flex shrink-0 items-center gap-2">
+          {!isSideChatSession && (
+            <button
+              type="button"
+              onClick={() => void openSideChat()}
+              disabled={isOpeningSideChat}
+              title={t('chat.openSideChat')}
+              aria-label={t('chat.openSideChat')}
+              className={cn(
+                'rounded p-0.5 transition-all duration-150',
+                'text-(--text-muted) hover:text-(--sidebar-text-active)',
+                'hover:bg-(--sidebar-hover)',
+                isOpeningSideChat && 'pointer-events-none opacity-40',
+              )}
+              data-testid="header-side-chat-button"
+            >
+              <MessagesSquare className="h-3.5 w-3.5" />
+            </button>
+          )}
+
           {search?.isOpen ? (
             <MessageSearchBar
               query={search.query}
