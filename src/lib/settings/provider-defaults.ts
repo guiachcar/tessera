@@ -565,6 +565,12 @@ export function normalizeUserSettings(raw: Partial<UserSettings> | null | undefi
         sessionMode: 'work',
         accessMode: 'default',
       },
+      zai: {
+        model: '',
+        reasoningEffort: null,
+        sessionMode: 'work',
+        accessMode: 'default',
+      },
     },
     inactivePanelDimming: 30,
     showProviderIcons: true,

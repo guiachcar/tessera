@@ -28,3 +28,4 @@ export { ClaudeCodeAdapter, claudeCodeAdapter } from './claude-code/adapter';
 export { CodexAdapter, codexAdapter } from './codex/adapter';
 export { OpenCodeAdapter, opencodeAdapter } from './opencode/adapter';
 export { KimiAdapter, kimiAdapter } from './kimi/adapter';
+export { ZaiAdapter, zaiAdapter } from './zai/adapter';

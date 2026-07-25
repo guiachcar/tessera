@@ -15,6 +15,7 @@ import {
 import { loadCodexSessionOptions } from './provider-session-options-codex';
 import { loadOpenCodeSessionOptions } from './provider-session-options-opencode';
 import { buildKimiSessionOptions } from './provider-session-options-kimi';
+import { buildZaiSessionOptions } from './provider-session-options-zai';
 import { ensureModelConfigReady } from '../model-config/remote-config';
 import { getAgentEnvironment } from './spawn-cli';
 import type { AgentEnvironment } from '../settings/types';
@@ -132,6 +133,10 @@ async function loadProviderSessionOptions(
 
   if (providerId === 'kimi') {
     return buildKimiSessionOptions();
+  }
+
+  if (providerId === 'zai') {
+    return buildZaiSessionOptions();
   }
 
   await ensureModelConfigReady();

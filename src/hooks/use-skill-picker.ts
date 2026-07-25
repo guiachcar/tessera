@@ -187,6 +187,7 @@ export function useSkillPicker(
         providerId === 'claude-code'
         || providerId === 'opencode'
         || providerId === 'kimi'
+        || providerId === 'zai'
       ) {
         if (isSessionRunning !== false) {
           wsClient.getCommands(sessionId);

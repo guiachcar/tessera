@@ -68,6 +68,7 @@ export interface SetupStatusResponse {
     codex: string;
     opencode: string;
     kimi: string;
+    zai: string;
     git: string;
     gh: string;
   };
@@ -84,6 +85,7 @@ export const SETUP_INSTALL_LINKS = {
   codex: 'https://developers.openai.com/codex/cli',
   opencode: 'https://opencode.ai/docs/cli/',
   kimi: 'https://moonshotai.github.io/kimi-cli/en/',
+  zai: 'https://docs.z.ai/devpack/tool/claude',
   git: 'https://git-scm.com/downloads',
   gh: 'https://cli.github.com/',
 } as const;

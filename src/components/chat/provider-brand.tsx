@@ -80,6 +80,17 @@ function KimiLogo(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+function ZaiLogo(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...props}>
+      <path
+        fill="currentColor"
+        d="M4 4h16v3.2L9.9 17.6H20V20H4v-3.2L14.1 6.4H4V4Z"
+      />
+    </svg>
+  );
+}
+
 function GenericBotLogo(props: SVGProps<SVGSVGElement>) {
   return <Bot {...props} />;
 }
@@ -136,6 +147,19 @@ const PROVIDER_BRANDS: Record<string, ProviderBrandMeta> = {
       icon: 'var(--provider-kimi-icon)',
     },
     Icon: KimiLogo,
+  },
+  zai: {
+    id: 'zai',
+    label: 'Z.ai',
+    displayName: 'Z.ai GLM',
+    tone: {
+      avatarBg: 'var(--provider-zai-avatar-bg)',
+      avatarFg: 'var(--provider-zai-avatar-fg)',
+      softBg: 'var(--provider-zai-soft-bg)',
+      softBorder: 'var(--provider-zai-soft-border)',
+      icon: 'var(--provider-zai-icon)',
+    },
+    Icon: ZaiLogo,
   },
 };
 

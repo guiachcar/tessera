@@ -15,7 +15,7 @@ const LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
   { value: 'zh', label: '中文' },
 ];
 
-const PROVIDER_OPTIONS = ['claude-code', 'codex', 'opencode', 'kimi'] as const;
+const PROVIDER_OPTIONS = ['claude-code', 'codex', 'opencode', 'kimi', 'zai'] as const;
 
 const SELECT_CLASS =
   'w-full px-3 py-2 border border-(--input-border) rounded-md bg-(--input-bg) text-(--text-primary) focus:outline-none focus:ring-1 focus:ring-(--accent) disabled:opacity-50 disabled:cursor-not-allowed';
