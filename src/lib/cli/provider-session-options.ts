@@ -16,6 +16,7 @@ import { loadClaudeSessionOptions } from './provider-session-options-claude';
 import { loadOpenCodeSessionOptions } from './provider-session-options-opencode';
 import { mergeCustomModelIds } from './provider-session-custom-models';
 import { buildKimiSessionOptions } from './provider-session-options-kimi';
+import { buildZaiSessionOptions } from './provider-session-options-zai';
 import { getAgentEnvironment } from './spawn-cli';
 import type { AgentEnvironment } from '../settings/types';
 import { SettingsManager } from '../settings/manager';
@@ -130,6 +131,8 @@ async function loadProviderSessionOptions(
     );
   } else if (providerId === 'kimi') {
     sessionOptions = buildKimiSessionOptions();
+  } else if (providerId === 'zai') {
+    sessionOptions = buildZaiSessionOptions();
   } else {
     sessionOptions = await loadClaudeSessionOptions(
       agentEnvironment === 'static' || !agentEnvironment ? 'native' : agentEnvironment,

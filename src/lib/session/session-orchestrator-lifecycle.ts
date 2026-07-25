@@ -148,7 +148,7 @@ export async function resumeSessionWithLifecycle({
   // with "No conversation found". Load history lazily only when needed later.
   let hasTesseraHistory: boolean | null = null;
   let useResume = true;
-  if (providerId === 'claude-code') {
+  if (providerId === 'claude-code' || providerId === 'zai') {
     hasTesseraHistory = await sessionHistory.historyExists(sessionId);
     useResume = hasTesseraHistory;
   } else if (providerId === 'codex') {

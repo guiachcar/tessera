@@ -217,9 +217,15 @@ export function useSkillPicker(
 
     const task = (async () => {
       // Providers whose parsers report slash commands over the live session
-      // (ACP available_commands_update): fetch via WS. Claude Code moved to the
-      // HTTP skills route upstream, so it is intentionally not listed here.
-      if (providerId === 'opencode' || providerId === 'kimi') {
+      // (Claude stream-json init, ACP available_commands_update): fetch via WS.
+      // Claude Code itself moved to the HTTP skills route upstream, but the
+      // route only knows claude-code/codex/opencode — the fork providers stay
+      // on the live-session path.
+      if (
+        providerId === 'opencode'
+        || providerId === 'kimi'
+        || providerId === 'zai'
+      ) {
         if (isSessionRunning !== false) {
           wsClient.getCommands(sessionId);
           return;

@@ -92,7 +92,31 @@ export function parseClaudeTitleResponse(text: string): GeneratedTitle | null {
 // =============================================================================
 
 export class ClaudeCodeAdapter implements CliProvider {
+  protected readonly providerId: string = PROVIDER_ID;
+  protected readonly defaultCommand: string = DEFAULT_COMMAND;
+  protected readonly displayName: string = 'Claude Code';
+
   private _processRawLogs = new WeakMap<ChildProcess, CliRawLogSink>();
+
+  /**
+   * Extra environment applied on every spawn (sessions and one-shot -p calls).
+   * Subclasses (e.g. the Z.ai GLM adapter) override this to point the claude
+   * binary at an Anthropic-compatible endpoint. An `undefined` value deletes
+   * the variable from the child environment.
+   */
+  protected buildSpawnEnvOverrides(): Record<string, string | undefined> {
+    return {};
+  }
+
+  private _applyEnvOverrides(env: Record<string, string | undefined>): void {
+    for (const [key, value] of Object.entries(this.buildSpawnEnvOverrides())) {
+      if (value === undefined) {
+        delete env[key];
+      } else {
+        env[key] = value;
+      }
+    }
+  }
 
   private _attachRawLog(
     proc: ChildProcess,
@@ -120,14 +144,14 @@ export class ClaudeCodeAdapter implements CliProvider {
    * Returns the unique machine-readable identifier for this provider.
    */
   getProviderId(): string {
-    return PROVIDER_ID;
+    return this.providerId;
   }
 
   /**
    * Returns the human-readable display name for this provider.
    */
   getDisplayName(): string {
-    return 'Claude Code';
+    return this.displayName;
   }
 
   getTerminalAppearanceChangePolicy(): 'live' {
@@ -210,9 +234,9 @@ export class ClaudeCodeAdapter implements CliProvider {
    */
   async isAvailable(environment?: 'native' | 'wsl'): Promise<boolean> {
     if (environment) {
-      return probeBinaryAvailable('claude', environment);
+      return probeBinaryAvailable(this.defaultCommand, environment);
     }
-    return isBinaryAvailable('claude');
+    return isBinaryAvailable(this.defaultCommand);
   }
 
   async fetchRateLimits({ environment }: { environment: 'native' | 'wsl' }) {
@@ -227,8 +251,8 @@ export class ClaudeCodeAdapter implements CliProvider {
    */
   async checkStatus(options: CheckStatusOptions): Promise<CliStatusResult> {
     const commandMetadata = await resolveProviderCliCommandWithMetadata(
-      PROVIDER_ID,
-      DEFAULT_COMMAND,
+      this.providerId,
+      this.defaultCommand,
       options.environment,
       options.userId,
     );
@@ -367,8 +391,11 @@ export class ClaudeCodeAdapter implements CliProvider {
     // and disables adaptive thinking, which breaks --effort on Opus/Sonnet 4.6.
     delete spawnEnv.MAX_THINKING_TOKENS;
     Object.assign(spawnEnv, options.managedLaunch?.environment ?? {});
+    // Provider overrides last: a subclass pointing the claude binary at another
+    // endpoint must win over anything the managed launch injected.
+    this._applyEnvOverrides(spawnEnv);
     const agentEnv = await getAgentEnvironment(options.userId);
-    const command = await resolveProviderCliCommand(PROVIDER_ID, DEFAULT_COMMAND, agentEnv, options.userId);
+    const command = await resolveProviderCliCommand(this.providerId, this.defaultCommand, agentEnv, options.userId);
 
     const cliProcess = spawnCli(command, args, {
       cwd: workDir,
@@ -379,7 +406,7 @@ export class ClaudeCodeAdapter implements CliProvider {
       guestEnvironment: options.managedLaunch?.guestEnvironment,
     });
     this._attachRawLog(cliProcess, options.rawLog, {
-      providerId: PROVIDER_ID,
+      providerId: this.providerId,
       command,
       args,
       cwd: workDir,
@@ -539,15 +566,17 @@ export class ClaudeCodeAdapter implements CliProvider {
     extraArgs: string[] = [],
   ): Promise<string> {
     const agentEnv = await getAgentEnvironment(userId);
-    const command = await resolveProviderCliCommand(PROVIDER_ID, DEFAULT_COMMAND, agentEnv, userId);
+    const command = await resolveProviderCliCommand(this.providerId, this.defaultCommand, agentEnv, userId);
+
+    // Remove Claude-related env vars to avoid "nested session" detection
+    const cleanEnv = Object.fromEntries(
+      Object.entries(process.env).filter(([k]) =>
+        k !== 'CLAUDECODE' && !k.startsWith('CLAUDE_CODE_')
+      )
+    ) as Record<string, string | undefined>;
+    this._applyEnvOverrides(cleanEnv);
 
     return new Promise((resolve, reject) => {
-      // Remove Claude-related env vars to avoid "nested session" detection
-      const cleanEnv = Object.fromEntries(
-        Object.entries(process.env).filter(([k]) =>
-          k !== 'CLAUDECODE' && !k.startsWith('CLAUDE_CODE_')
-        )
-      ) as NodeJS.ProcessEnv;
 
       const child = spawnCli(command, [
         '-p',
@@ -558,7 +587,7 @@ export class ClaudeCodeAdapter implements CliProvider {
       ], {
         stdio: ['pipe', 'pipe', 'pipe'],
         cwd: getRuntimePlatform() === 'win32' ? process.env.TEMP || process.cwd() : '/tmp',
-        env: cleanEnv,
+        env: cleanEnv as NodeJS.ProcessEnv,
       }, agentEnv);
 
       let stdout = '';
