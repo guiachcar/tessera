@@ -18,6 +18,9 @@ import type {
   SessionResumeResult,
 } from './types';
 import { generateDefaultTitle } from './title-generator';
+import { getServerPort } from '../server-port';
+import { ensureOrchestratorMcpConfig } from '../orchestrator/config';
+import { ORCHESTRATOR_SYSTEM_PROMPT } from '../orchestrator/system-prompt';
 
 interface ResumeReplayState {
   messages: SessionResumeResult['messages'];
@@ -256,6 +259,17 @@ export async function resumeSessionWithLifecycle({
 
   const runtimeDefaults = await resolveRuntimeModelDefaults(providerId, userId, optionsWithPersisted);
 
+  // Orchestrator sessions: inject the embedded Tessera MCP server + maestro
+  // system prompt on EVERY spawn (first message, resume, retry — all converge
+  // here), so a backend restart with a fresh port/token never strands the CLI.
+  const orchestratorSpawnExtras =
+    dbSessions.extractSessionKind(session.provider_state) === 'orchestrator'
+      ? {
+          mcpConfigPath: ensureOrchestratorMcpConfig(getServerPort()),
+          appendSystemPrompt: ORCHESTRATOR_SYSTEM_PROMPT,
+        }
+      : {};
+
   let cliSessionId = await processManager.resumeSession(
     sessionId,
     userId,
@@ -275,6 +289,7 @@ export async function resumeSessionWithLifecycle({
       sandboxMode: options.sandboxMode,
       serviceTier: runtimeDefaults.serviceTier,
       fastMode: options.fastMode,
+      ...orchestratorSpawnExtras,
     },
   );
 

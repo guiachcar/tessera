@@ -14,6 +14,12 @@ interface PersistCreatedSessionRecordOptions {
   parentSessionId?: string | null;
   title: string;
   executionMode: AgentExecutionMode;
+  /**
+   * Explicit session kind. 'orchestrator' is a Tessera-wide meta chat (MCP
+   * self-server injected at spawn). When absent, kind is derived from
+   * executionMode ('pty' → 'terminal', else default 'chat').
+   */
+  sessionKind?: 'orchestrator';
   worktreeBranch?: string;
   worktreeManaged?: boolean;
   model?: string;
@@ -73,7 +79,11 @@ export function persistCreatedSessionRecord(
     },
   );
 
-  if (options.executionMode === 'pty') {
+  if (options.sessionKind === 'orchestrator') {
+    dbSessions.updateSession(options.sessionId, {
+      provider_state: JSON.stringify({ kind: 'orchestrator' }),
+    });
+  } else if (options.executionMode === 'pty') {
     dbSessions.updateSession(options.sessionId, {
       provider_state: JSON.stringify({ kind: 'terminal' }),
     });

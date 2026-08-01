@@ -346,6 +346,10 @@ export const en: I18nMessages = {
     providerCta: 'Send feedback',
     projectImportCta: 'Send feedback',
   },
+  orchestrator: {
+    newChat: 'New Orchestrator chat',
+    noCapableProvider: 'Orchestrator needs Claude Code (or Z.AI) installed and connected.',
+  },
   auth: {
     title: 'Tessera',
     subtitle: 'Sign in to get started',

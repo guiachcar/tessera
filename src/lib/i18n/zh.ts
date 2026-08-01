@@ -346,6 +346,10 @@ export const zh: I18nMessages = {
     providerCta: '发送反馈',
     projectImportCta: '发送反馈',
   },
+  orchestrator: {
+    newChat: '新建 Orchestrator 聊天',
+    noCapableProvider: 'Orchestrator 需要已安装并连接 Claude Code（或 Z.AI）。',
+  },
   auth: {
     title: 'Tessera',
     subtitle: '登录以开始使用',

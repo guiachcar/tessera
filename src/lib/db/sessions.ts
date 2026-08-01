@@ -558,11 +558,12 @@ export function extractThreadId(providerState: string | null): string | undefine
   }
 }
 
-/** provider_state.kind ('chat'|'terminal'). 미기록/파싱실패 시 'chat'(기존 동작 보존). */
-export function extractSessionKind(providerState: string | null): 'chat' | 'terminal' {
+/** provider_state.kind ('chat'|'terminal'|'orchestrator'). 미기록/파싱실패 시 'chat'(기존 동작 보존). */
+export function extractSessionKind(providerState: string | null): 'chat' | 'terminal' | 'orchestrator' {
   if (!providerState) return 'chat';
   try {
-    return JSON.parse(providerState).kind === 'terminal' ? 'terminal' : 'chat';
+    const kind = JSON.parse(providerState).kind;
+    return kind === 'terminal' || kind === 'orchestrator' ? kind : 'chat';
   } catch {
     return 'chat';
   }

@@ -255,7 +255,7 @@ export class ClaudeCodeAdapter implements CliProvider {
       '--include-partial-messages',
       '--permission-prompt-tool', 'stdio',
       '--allow-dangerously-skip-permissions',
-      '--append-system-prompt', '',
+      '--append-system-prompt', options.appendSystemPrompt ?? '',
     ];
 
     if (sessionId && resume) {
@@ -270,6 +270,10 @@ export class ClaudeCodeAdapter implements CliProvider {
 
     if (model) {
       args.push('--model', model);
+    }
+
+    if (options.mcpConfigPath) {
+      args.push('--mcp-config', options.mcpConfigPath);
     }
 
     // Session-scoped settings (ultracode, effortLevel, fastMode) are merged into a

@@ -348,6 +348,10 @@ export const ko: I18nMessages = {
     providerCta: '피드백 보내기',
     projectImportCta: '피드백 보내기',
   },
+  orchestrator: {
+    newChat: '새 오케스트레이터 채팅',
+    noCapableProvider: '오케스트레이터는 Claude Code(또는 Z.AI)가 설치·연결되어 있어야 합니다.',
+  },
   auth: {
     title: 'Tessera',
     subtitle: '로그인하여 시작하세요',

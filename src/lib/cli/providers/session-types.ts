@@ -64,6 +64,17 @@ export interface SpawnOptions extends ProviderRuntimeControls {
    * stdin/stdout/stderr without changing normal session behavior.
    */
   rawLog?: CliRawLogSink;
+  /**
+   * Orchestrator sessions only: path to a generated MCP config file
+   * (Claude Code `--mcp-config`) exposing the embedded Tessera MCP server.
+   */
+  mcpConfigPath?: string;
+  /**
+   * Orchestrator sessions only: system prompt appended to the provider's own
+   * (Claude Code `--append-system-prompt`). Absent/empty preserves the
+   * provider's default behavior.
+   */
+  appendSystemPrompt?: string;
 }
 
 /**

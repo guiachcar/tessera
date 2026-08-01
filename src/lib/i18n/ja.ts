@@ -346,6 +346,10 @@ export const ja: I18nMessages = {
     providerCta: 'フィードバックを送信',
     projectImportCta: 'フィードバックを送信',
   },
+  orchestrator: {
+    newChat: '新しいオーケストレーターチャット',
+    noCapableProvider: 'オーケストレーターには Claude Code（または Z.AI）のインストールと接続が必要です。',
+  },
   auth: {
     title: 'Tessera',
     subtitle: 'ログインして始めましょう',

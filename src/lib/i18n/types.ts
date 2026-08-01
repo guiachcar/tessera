@@ -334,6 +334,10 @@ export interface I18nMessages {
     providerCta: string;
     projectImportCta: string;
   };
+  orchestrator: {
+    newChat: string;
+    noCapableProvider: string;
+  };
   auth: {
     title: string;
     subtitle: string;

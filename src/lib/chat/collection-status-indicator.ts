@@ -7,7 +7,7 @@ export interface CollectionSessionSnapshot {
   id: string;
   isRunning: boolean;
   unreadCount?: number;
-  kind?: 'chat' | 'terminal';
+  kind?: 'chat' | 'terminal' | 'orchestrator';
 }
 
 export interface CollectionStatusFlags {

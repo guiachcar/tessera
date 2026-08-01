@@ -2,12 +2,16 @@
 
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Archive, Home, Plus, LogOut, Blocks, EyeOff, MessageSquarePlus } from 'lucide-react';
+import { Archive, Home, Plus, LogOut, Blocks, EyeOff, MessageSquarePlus, Waypoints } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBoardStore } from '@/stores/board-store';
 import { useSessionStore } from '@/stores/session-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTabStore } from '@/stores/tab-store';
+import { useProvidersStore } from '@/stores/providers-store';
+import { useSessionCrud } from '@/hooks/use-session-crud';
+import { toast } from '@/stores/notification-store';
+import { ORCHESTRATOR_CAPABLE_PROVIDERS } from '@/lib/orchestrator/providers';
 import { ALL_PROJECTS_SENTINEL, getProjectColor } from '@/lib/constants/project-strip';
 import { ARCHIVE_DASHBOARD_SESSION_ID, SKILLS_DASHBOARD_SESSION_ID } from '@/lib/constants/special-sessions';
 import { useProjectStripDnd } from '@/hooks/use-project-strip-dnd';
@@ -50,6 +54,21 @@ export function ProjectStrip({
   // The popout window only renders one project at a time, so the All
   // Projects sentinel doesn't make sense while it's open.
   const { isActive: isPopoutActive } = usePopoutActive();
+  const { createSession } = useSessionCrud();
+
+  // Orchestrator chat: Tessera-wide meta session backed by the embedded MCP
+  // server. Picks the first connected orchestrator-capable provider.
+  const handleNewOrchestratorChat = useCallback(async () => {
+    const providers = useProvidersStore.getState().providers ?? [];
+    const provider = providers.find(
+      (p) => ORCHESTRATOR_CAPABLE_PROVIDERS.includes(p.id) && p.status === 'connected',
+    ) ?? providers.find((p) => ORCHESTRATOR_CAPABLE_PROVIDERS.includes(p.id));
+    if (!provider) {
+      toast.error(t('orchestrator.noCapableProvider'));
+      return;
+    }
+    await createSession({ providerId: provider.id, kind: 'orchestrator' });
+  }, [createSession, t]);
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; encodedDir: string; displayName: string } | null>(null);
@@ -221,6 +240,17 @@ export function ProjectStrip({
       {!hideManagementActions && (
       <div className="flex flex-col items-center shrink-0">
         <div className="w-6 border-t border-(--divider)" />
+        <Tooltip content={t('orchestrator.newChat')} delay={300}>
+          <Button
+            variant="ghost"
+            size="icon-lg"
+            className="rounded-none"
+            onClick={() => { void handleNewOrchestratorChat(); }}
+            data-testid="project-strip-orchestrator"
+          >
+            <Waypoints className="w-5 h-5" />
+          </Button>
+        </Tooltip>
         <NotificationBell direction="right" />
         <Tooltip content={t('skill.dashboardTitle')} delay={300}>
           <Button

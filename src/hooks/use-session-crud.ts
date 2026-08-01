@@ -32,6 +32,8 @@ interface SessionCreateOptions {
   title?: string;
   hasCustomTitle?: boolean;
   executionMode?: AgentExecutionMode;
+  /** Tessera-wide meta chat backed by the embedded MCP server. */
+  kind?: 'orchestrator';
 }
 
 export function useSessionCrud() {
@@ -127,7 +129,9 @@ export function useSessionCrud() {
         provider: resolvedProviderId,
         taskId: options.taskId,
         collectionId: options.collectionId,
-        kind: effectiveExecutionMode === 'pty' ? 'terminal' : 'chat',
+        kind: options.kind === 'orchestrator'
+          ? 'orchestrator'
+          : effectiveExecutionMode === 'pty' ? 'terminal' : 'chat',
       };
 
       sessionStore.addSession(optimisticSession);
@@ -175,6 +179,7 @@ export function useSessionCrud() {
             ...(options.taskId && { taskId: options.taskId }),
             ...(options.collectionId && { collectionId: options.collectionId }),
             ...(options.executionMode && { executionMode: options.executionMode }),
+            ...(options.kind && { kind: options.kind }),
           }),
         });
 

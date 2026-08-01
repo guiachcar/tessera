@@ -21,6 +21,10 @@ import { ensureRemoteModelConfigLoaded } from './src/lib/model-config/remote-con
 import logger from './src/lib/logger';
 import { getServerPort } from './src/lib/server-port';
 import { handleHookRequest } from './src/lib/cli/hook-receiver';
+import {
+  authorizeOrchestratorMcpRequest,
+  handleOrchestratorMcpRequest,
+} from './src/lib/orchestrator/mcp-server';
 import { warmWindowsConptyOnce } from './src/lib/terminal/windows-conpty-warmup';
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -63,13 +67,26 @@ async function startServer() {
 
   // Attach request handler after Next.js is prepared
   server.on('request', (req, res) => {
-    // 상태 사이드채널: PTY claude 훅만 여기서 처리하고 Next로 넘기지 않는다.
-    if (req.method === 'POST' && req.url) {
-      const pathname = req.url.split('?')[0];
-      if (pathname === '/__tessera/hook') {
-        void handleHookRequest(req, res);
+    const pathname = req.url?.split('?')[0];
+
+    // Embedded MCP server for orchestrator sessions (bearer + loopback).
+    // Streamable HTTP uses POST for calls and GET/DELETE for stream/session
+    // management — route all methods so the transport answers with proper
+    // JSON-RPC errors instead of falling through to the Next 404 page.
+    if (pathname === '/__tessera/mcp') {
+      if (!authorizeOrchestratorMcpRequest(req)) {
+        res.writeHead(401, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'unauthorized' }));
         return;
       }
+      void handleOrchestratorMcpRequest(req, res);
+      return;
+    }
+
+    // 상태 사이드채널: PTY claude 훅만 여기서 처리하고 Next로 넘기지 않는다.
+    if (req.method === 'POST' && pathname === '/__tessera/hook') {
+      void handleHookRequest(req, res);
+      return;
     }
     handle(req, res);
   });

@@ -13,6 +13,8 @@ import {
 } from '@/lib/session/agent-execution-mode';
 import { SettingsManager } from '@/lib/settings/manager';
 import { broadcastSessionMutation, getOriginClientIdFromRequest } from '@/lib/ws/mutation-broadcast';
+import { getOrchestratorWorkDir } from '@/lib/orchestrator/config';
+import { ORCHESTRATOR_CAPABLE_PROVIDERS } from '@/lib/orchestrator/providers';
 
 /**
  * POST /api/sessions - Create a new session (pending; CLI spawns on first message)
@@ -45,9 +47,15 @@ export async function POST(req: NextRequest) {
       taskId,
       collectionId,
       executionMode: rawExecutionMode,
+      kind: rawKind,
     } = body;
 
-    const resolvedWorkDir = workDir || process.cwd();
+    const isOrchestrator = rawKind === 'orchestrator';
+    if (rawKind !== undefined && rawKind !== 'orchestrator') {
+      return NextResponse.json({ error: "kind must be 'orchestrator' when provided" }, { status: 400 });
+    }
+
+    const resolvedWorkDir = workDir || (isOrchestrator ? getOrchestratorWorkDir() : process.cwd());
     const normalizedTaskId =
       typeof taskId === 'string' && taskId.trim().length > 0
         ? taskId.trim()
@@ -63,6 +71,19 @@ export async function POST(req: NextRequest) {
 
     if (!resolvedProviderId) {
       return NextResponse.json({ error: 'providerId is required' }, { status: 400 });
+    }
+
+    if (isOrchestrator && !ORCHESTRATOR_CAPABLE_PROVIDERS.includes(resolvedProviderId)) {
+      return NextResponse.json(
+        { error: `Orchestrator sessions require one of: ${ORCHESTRATOR_CAPABLE_PROVIDERS.join(', ')} (embedded MCP injection)` },
+        { status: 400 },
+      );
+    }
+    if (isOrchestrator && rawExecutionMode === 'pty') {
+      return NextResponse.json(
+        { error: 'Orchestrator sessions run as chat (gui), never pty' },
+        { status: 400 },
+      );
     }
 
     const settings = await SettingsManager.load(userId, { silent: true });
@@ -81,7 +102,9 @@ export async function POST(req: NextRequest) {
     try {
       executionMode = resolveSessionCreationExecutionMode(
         rawExecutionMode,
-        settings.agentExecutionMode,
+        // Orchestrator is always a chat session — a pty default must not turn
+        // it into a terminal.
+        isOrchestrator ? 'gui' : settings.agentExecutionMode,
         executionCapabilities,
       );
     } catch (error) {
@@ -112,7 +135,11 @@ export async function POST(req: NextRequest) {
 
     try {
       const result = await sessionOrchestrator.createSession(userId, {
-        workDir,
+        // Pass the RESOLVED dir so the orchestrator's in-memory session, the
+        // persisted record and the response all agree — this matters for
+        // orchestrator sessions, whose default workDir is a virtual project
+        // (~/.tessera/orchestrator), not the server cwd.
+        workDir: resolvedWorkDir,
         title,
         permissionMode,
         model,
@@ -134,6 +161,7 @@ export async function POST(req: NextRequest) {
         title: result.title,
         providerId: resolvedProviderId,
         executionMode,
+        sessionKind: isOrchestrator ? 'orchestrator' : undefined,
         parentProjectId: typeof parentProjectId === 'string' ? parentProjectId : undefined,
         taskId: normalizedTaskId,
         collectionId: typeof collectionId === 'string' && collectionId.trim().length > 0 ? collectionId.trim() : undefined,

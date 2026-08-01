@@ -202,8 +202,8 @@ export interface UnifiedSession {
   isReadOnly?: boolean;
   /** Unread notification count (incremented on notification, cleared on view) */
   unreadCount?: number;
-  /** 세션 실행 형태. 'terminal'이면 composer 전송이 PTY claude 런치로 라우팅된다. 기본 'chat'. */
-  kind?: 'chat' | 'terminal';
+  /** 세션 실행 형태. 'terminal'이면 composer 전송이 PTY claude 런치로 라우팅된다. 'orchestrator'는 Tessera 전역 메타 챗. 기본 'chat'. */
+  kind?: 'chat' | 'terminal' | 'orchestrator';
   /** Whether the title was explicitly set by user (prevents auto-title overwrite) */
   hasCustomTitle?: boolean;
 
