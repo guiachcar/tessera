@@ -30,6 +30,11 @@ export const CONFIGURABLE_CLI_PROVIDERS = [
     displayName: 'Z.ai GLM',
     commandName: 'claude',
   },
+  {
+    providerId: 'avi',
+    displayName: 'Avi',
+    commandName: 'avi',
+  },
 ] as const;
 
 export function sanitizeCliCommandOverride(value: unknown): string {

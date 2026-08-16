@@ -75,6 +75,10 @@ const SUPPORTED_PROVIDERS = [
     providerId: 'zai',
     displayName: 'Z.ai GLM',
   },
+  {
+    providerId: 'avi',
+    displayName: 'Avi',
+  },
 ] as const;
 
 interface SetupClientProps {
@@ -931,6 +935,7 @@ function getProviderInstallUrl(providerId: string, status: SetupStatusResponse):
   if (providerId === 'opencode') return status.installLinks.opencode;
   if (providerId === 'kimi') return status.installLinks.kimi;
   if (providerId === 'zai') return status.installLinks.zai;
+  if (providerId === 'avi') return status.installLinks.avi;
   return null;
 }
 

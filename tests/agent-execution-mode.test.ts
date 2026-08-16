@@ -23,6 +23,32 @@ test('Claude Code, Codex, and OpenCode can use either execution mode', () => {
   }
 });
 
+test('every registered provider declares at least one usable execution mode', () => {
+  // A provider missing from the capability map falls back to {pty:false,
+  // gui:false}, which the launcher reads as "unsupported" and refuses — the
+  // click does nothing and no request reaches the server. Adding a provider
+  // without adding it here is silent, so the list is asserted explicitly.
+  for (const providerId of ['claude-code', 'codex', 'opencode', 'kimi', 'zai', 'avi']) {
+    const capabilities = getProviderExecutionCapabilities(providerId);
+    assert.ok(
+      capabilities.pty || capabilities.gui,
+      `${providerId} declares no usable execution mode`,
+    );
+  }
+});
+
+test('Kimi Code, Z.ai GLM, and Avi use structured GUI chat', () => {
+  for (const providerId of ['kimi', 'zai', 'avi']) {
+    const capabilities = getProviderExecutionCapabilities(providerId);
+    assert.deepEqual(capabilities, {
+      pty: false,
+      gui: true,
+    });
+    assert.equal(resolveEffectiveExecutionMode('gui', capabilities), 'gui');
+    assert.equal(resolveEffectiveExecutionMode('pty', capabilities), 'gui');
+  }
+});
+
 test('an explicitly PTY-only provider falls back from GUI preference to PTY', () => {
   assert.equal(
     resolveEffectiveExecutionMode('gui', { pty: true, gui: false }),

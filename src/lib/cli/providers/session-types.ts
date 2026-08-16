@@ -54,6 +54,12 @@ export interface SpawnOptions extends ProviderRuntimeControls {
    */
   kimiSessionId?: string;
   /**
+   * Avi: ACP sessionId from session/new, stored in sessions.provider_state
+   * as {"aviSessionId": "..."}. Avi persists the transcript in its own vault,
+   * so this id is what resume replays against.
+   */
+  aviSessionId?: string;
+  /**
    * Optional provider startup/handshake timeout override. Regular sessions use
    * provider defaults; diagnostics pass a shorter timeout so settings checks do
    * not hang for minutes.

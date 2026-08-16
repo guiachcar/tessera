@@ -91,6 +91,19 @@ function ZaiLogo(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+function AviLogo(props: SVGProps<SVGSVGElement>) {
+  // Typographic "A". Avi's own mark is an illustration that does not survive
+  // being shrunk to an avatar, so the provider row gets a legible glyph instead.
+  return (
+    <svg viewBox="0 0 24 24" {...props}>
+      <path
+        fill="currentColor"
+        d="M10.6 3h2.8l6.4 18h-3l-1.5-4.5H8.7L7.2 21h-3L10.6 3Zm.4 3.9-2.4 7.2h5.2l-2.4-7.2h-.4Z"
+      />
+    </svg>
+  );
+}
+
 function GenericBotLogo(props: SVGProps<SVGSVGElement>) {
   return <Bot {...props} />;
 }
@@ -160,6 +173,19 @@ const PROVIDER_BRANDS: Record<string, ProviderBrandMeta> = {
       icon: 'var(--provider-zai-icon)',
     },
     Icon: ZaiLogo,
+  },
+  avi: {
+    id: 'avi',
+    label: 'Avi',
+    displayName: 'Avi',
+    tone: {
+      avatarBg: 'var(--provider-avi-avatar-bg)',
+      avatarFg: 'var(--provider-avi-avatar-fg)',
+      softBg: 'var(--provider-avi-soft-bg)',
+      softBorder: 'var(--provider-avi-soft-border)',
+      icon: 'var(--provider-avi-icon)',
+    },
+    Icon: AviLogo,
   },
 };
 
