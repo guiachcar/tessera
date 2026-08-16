@@ -56,20 +56,6 @@ export function ProjectStrip({
   const { isActive: isPopoutActive } = usePopoutActive();
   const { createSession } = useSessionCrud();
 
-  // Orchestrator chat: Tessera-wide meta session backed by the embedded MCP
-  // server. Picks the first connected orchestrator-capable provider.
-  const handleNewOrchestratorChat = useCallback(async () => {
-    const providers = useProvidersStore.getState().providers ?? [];
-    const provider = providers.find(
-      (p) => ORCHESTRATOR_CAPABLE_PROVIDERS.includes(p.id) && p.status === 'connected',
-    ) ?? providers.find((p) => ORCHESTRATOR_CAPABLE_PROVIDERS.includes(p.id));
-    if (!provider) {
-      toast.error(t('orchestrator.noCapableProvider'));
-      return;
-    }
-    await createSession({ providerId: provider.id, kind: 'orchestrator' });
-  }, [createSession, t]);
-
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; encodedDir: string; displayName: string } | null>(null);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
@@ -85,6 +71,30 @@ export function ProjectStrip({
     setSelectedProjectDir(projectDir);
     useTabStore.getState().switchProject(projectDir);
   }, [setSelectedProjectDir]);
+
+  // Orchestrator space: once the virtual project exists, the Waypoints button
+  // navigates to it (new meta chats are created from its empty panel, which
+  // defaults to kind 'orchestrator'). Before the first chat exists, the
+  // button creates it directly.
+  const orchestratorProject = projects.find((p) => p.isOrchestrator);
+  const isOrchestratorSelected = orchestratorProject !== undefined
+    && selectedProjectDir === orchestratorProject.encodedDir;
+
+  const handleNewOrchestratorChat = useCallback(async () => {
+    if (orchestratorProject) {
+      handleProjectSelect(orchestratorProject.encodedDir);
+      return;
+    }
+    const providers = useProvidersStore.getState().providers ?? [];
+    const provider = providers.find(
+      (p) => ORCHESTRATOR_CAPABLE_PROVIDERS.includes(p.id) && p.status === 'connected',
+    ) ?? providers.find((p) => ORCHESTRATOR_CAPABLE_PROVIDERS.includes(p.id));
+    if (!provider) {
+      toast.error(t('orchestrator.noCapableProvider'));
+      return;
+    }
+    await createSession({ providerId: provider.id, kind: 'orchestrator' });
+  }, [createSession, handleProjectSelect, orchestratorProject, t]);
 
   // Close context menu on click outside or ESC
   useEffect(() => {
@@ -189,6 +199,10 @@ export function ProjectStrip({
       <ScrollArea className="flex-1">
         <div className="flex flex-col items-center gap-1 py-1">
           {projects.map((p, index) => {
+            // Orchestrator meta chats live in a virtual project that is not a
+            // real workspace — it is hidden from the strip and reached via the
+            // Waypoints action below.
+            if (p.isOrchestrator) return null;
             const color = getProjectColor(p.displayName);
             const isSelected = selectedProjectDir === p.encodedDir;
             const isDragging = draggingProjectDir === p.encodedDir;
@@ -244,7 +258,7 @@ export function ProjectStrip({
           <Button
             variant="ghost"
             size="icon-lg"
-            className="rounded-none"
+            className={cn('rounded-none', isOrchestratorSelected && 'text-(--accent)')}
             onClick={() => { void handleNewOrchestratorChat(); }}
             data-testid="project-strip-orchestrator"
           >

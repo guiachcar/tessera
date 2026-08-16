@@ -288,6 +288,8 @@ export interface ProjectGroup {
   displayPath?: string;
   /** Whether this is the current project (matches process.cwd()) */
   isCurrent: boolean;
+  /** Virtual project backing orchestrator (meta) chats — hidden from the project strip. */
+  isOrchestrator?: boolean;
   /** Sessions in this project, sorted by lastModified desc */
   sessions: UnifiedSession[];
   /** Total session count (may exceed sessions.length if truncated) */

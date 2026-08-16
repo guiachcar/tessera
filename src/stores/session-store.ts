@@ -370,6 +370,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           decodedPath: p.decodedPath,
           displayPath: p.displayPath,
           isCurrent: p.isCurrent,
+          isOrchestrator: p.isOrchestrator === true,
           sessions,
           totalSessions: p.totalSessions,
           allLoaded: sessions.length >= p.totalSessions,

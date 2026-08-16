@@ -5,7 +5,7 @@ import { collectionExists } from '@/lib/db/collections';
 import { taskExists } from '@/lib/db/tasks';
 import * as dbSessions from '@/lib/db/sessions';
 import logger from '@/lib/logger';
-import { persistCreatedSessionRecord } from '@/lib/session/session-persistence';
+import { persistCreatedSessionRecord, validateSessionWorkDir } from '@/lib/session/session-persistence';
 import {
   getProviderExecutionCapabilities,
   resolveSessionCreationExecutionMode,
@@ -56,6 +56,13 @@ export async function POST(req: NextRequest) {
     }
 
     const resolvedWorkDir = workDir || (isOrchestrator ? getOrchestratorWorkDir() : process.cwd());
+
+    // Session creation auto-registers resolvedWorkDir as a project — reject
+    // dirs that would become junk projects (root, nonexistent, files).
+    const workDirError = validateSessionWorkDir(resolvedWorkDir);
+    if (workDirError) {
+      return NextResponse.json({ error: workDirError }, { status: 400 });
+    }
     const normalizedTaskId =
       typeof taskId === 'string' && taskId.trim().length > 0
         ? taskId.trim()

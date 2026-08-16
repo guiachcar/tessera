@@ -1,7 +1,32 @@
 import path from 'path';
+import fs from 'fs';
 import * as dbProjects from '../db/projects';
 import * as dbSessions from '../db/sessions';
 import type { AgentExecutionMode } from './agent-execution-mode';
+
+/**
+ * Validates a session workDir before it can auto-register a project.
+ * Session creation auto-registers resolvedWorkDir as a project, so garbage
+ * input (filesystem root, nonexistent paths, placeholders passed by agents
+ * via the API) becomes a visible junk project with an empty/garbage name.
+ * Returns an error message, or null when the dir is acceptable.
+ */
+export function validateSessionWorkDir(workDir: string): string | null {
+  const root = path.parse(workDir).root;
+  if (workDir === root) {
+    return `workDir must not be the filesystem root (${root})`;
+  }
+  let stat: fs.Stats;
+  try {
+    stat = fs.statSync(workDir);
+  } catch {
+    return `workDir does not exist: ${workDir}`;
+  }
+  if (!stat.isDirectory()) {
+    return `workDir is not a directory: ${workDir}`;
+  }
+  return null;
+}
 
 interface PersistCreatedSessionRecordOptions {
   collectionId?: string;
@@ -43,14 +68,15 @@ function resolveSessionProject({
     return {
       projectId: parentProjectId,
       decodedPath: parent?.decoded_path || resolvedWorkDir,
-      displayName: parent?.display_name || path.basename(resolvedWorkDir),
+      displayName: parent?.display_name || path.basename(resolvedWorkDir) || resolvedWorkDir,
     };
   }
 
   return {
     projectId: resolvedWorkDir,
     decodedPath: resolvedWorkDir,
-    displayName: path.basename(resolvedWorkDir),
+    // basename of root-ish paths is '' — never let a project go nameless.
+    displayName: path.basename(resolvedWorkDir) || resolvedWorkDir,
   };
 }
 

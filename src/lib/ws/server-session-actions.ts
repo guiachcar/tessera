@@ -8,7 +8,7 @@ import logger from '../logger';
 import { sessionOrchestrator } from '../session/session-orchestrator';
 import { applyImmediateSessionTitle } from '../session/immediate-session-title';
 import { sessionHistory } from '../session-history';
-import { persistCreatedSessionRecord } from '../session/session-persistence';
+import { persistCreatedSessionRecord, validateSessionWorkDir } from '../session/session-persistence';
 import { buildCodexSkillContent } from '../chat/build-codex-skill-content';
 import {
   classifyCodexSlashCommand,
@@ -181,6 +181,20 @@ export async function createSessionFromWebSocket({
       return;
     }
 
+    const resolvedWorkDir = workDir || process.cwd();
+
+    // Session creation auto-registers resolvedWorkDir as a project — reject
+    // dirs that would become junk projects (root, nonexistent, files).
+    const workDirError = validateSessionWorkDir(resolvedWorkDir);
+    if (workDirError) {
+      sendToUser(userId, {
+        type: 'error',
+        code: 'invalid_workdir',
+        message: workDirError,
+      });
+      return;
+    }
+
     const result = await sessionOrchestrator.createSession(userId, {
       workDir,
       permissionMode,
@@ -195,7 +209,6 @@ export async function createSessionFromWebSocket({
       approvalPolicy,
       sandboxMode,
     });
-    const resolvedWorkDir = workDir || process.cwd();
 
     persistCreatedSessionRecord({
       sessionId: result.sessionId,

@@ -14,6 +14,7 @@ import {
 import logger from '@/lib/logger';
 import { getSessionHistoryModifiedAt } from '@/lib/session-history';
 import { getCachedOrScheduleBulk } from '@/lib/git/worktree-diff-stats-bulk';
+import { getOrchestratorWorkDir } from '@/lib/orchestrator/config';
 
 function maxActivityTimestamp(left: string, right: string | null): string {
   if (!right) return left;
@@ -69,6 +70,7 @@ export async function GET(req: NextRequest) {
       .filter((project) => !isElectronAppRuntimeProjectPath(project.id));
 
     // Build project groups with sessions (per-status limit)
+    const orchestratorWorkDir = getOrchestratorWorkDir();
     const projectResults = projects.map((project) => {
       const result = dbSessions.getSessionsByProjectGrouped(project.id, { limitPerStatus });
 
@@ -97,6 +99,8 @@ export async function GET(req: NextRequest) {
         decodedPath: project.decoded_path,
         displayPath: formatPathForAgentDisplay(project.decoded_path, agentEnvironment),
         isCurrent: shouldRegisterCurrentProject && project.id === currentProjectId,
+        /** Virtual project backing orchestrator (meta) chats — hidden from the project strip. */
+        isOrchestrator: project.id === orchestratorWorkDir,
         sessions,
         totalSessions: result.totalCount,
         countByStatus: result.countByStatus,

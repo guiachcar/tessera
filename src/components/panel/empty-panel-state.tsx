@@ -25,6 +25,7 @@ import { CliProviderChipSelector } from '@/components/chat/cli-provider-chip-sel
 import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useProvidersStore } from '@/stores/providers-store';
+import { ORCHESTRATOR_CAPABLE_PROVIDERS } from '@/lib/orchestrator/providers';
 import { useFolderBrowserStore } from '@/stores/folder-browser-store';
 import type { Collection } from '@/types/collection';
 import { setPanelNodeDragData } from '@/lib/dnd/panel-session-drag';
@@ -188,11 +189,27 @@ export function EmptyPanelState({ panelId }: EmptyPanelStateProps) {
     }
 
     if (mode === 'chat') {
+      // Inside the orchestrator space (virtual project), new chats are meta
+      // chats: force kind 'orchestrator' and a provider that can inject the
+      // embedded MCP server.
+      const isOrchestratorSpace = activeProject.isOrchestrator === true;
+      let providerId = selectedProvider;
+      if (isOrchestratorSpace && !ORCHESTRATOR_CAPABLE_PROVIDERS.includes(providerId)) {
+        const capable = (providers ?? []).find(
+          (p) => ORCHESTRATOR_CAPABLE_PROVIDERS.includes(p.id) && p.status === 'connected',
+        ) ?? (providers ?? []).find((p) => ORCHESTRATOR_CAPABLE_PROVIDERS.includes(p.id));
+        if (!capable) {
+          setError(t('orchestrator.noCapableProvider'));
+          return;
+        }
+        providerId = capable.id;
+      }
       await createSession({
         workDir: activeProject.decodedPath,
-        providerId: selectedProvider,
+        providerId,
         collectionId: selectedCollectionId ?? undefined,
         executionMode,
+        ...(isOrchestratorSpace ? { kind: 'orchestrator' as const } : {}),
       });
       return;
     }
@@ -247,6 +264,7 @@ export function EmptyPanelState({ panelId }: EmptyPanelStateProps) {
     isSelectedExecutionModeSupported,
     mode,
     panelId,
+    providers,
     selectedCollectionId,
     selectedBaseRefForCreate,
     selectedProvider,
