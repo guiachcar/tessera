@@ -123,6 +123,21 @@ export class KimiAdapter implements CliProvider {
     return 'Kimi Code';
   }
 
+  // Kimi is driven purely over ACP and Tessera never opens a PTY for it, so
+  // these terminal policies are declared for contract completeness only and
+  // keep the neutral values used by the other ACP providers.
+  getTerminalAppearanceChangePolicy(): 'live' {
+    return 'live';
+  }
+
+  getTerminalResizeScrollbackPolicy(): 'native' {
+    return 'native';
+  }
+
+  getTerminalInterruptInputPolicy(): 'none' {
+    return 'none';
+  }
+
   async isAvailable(environment?: 'native' | 'wsl'): Promise<boolean> {
     if (environment) {
       return probeBinaryAvailable(DEFAULT_COMMAND, environment);
