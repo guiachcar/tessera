@@ -71,6 +71,7 @@ export interface SetupStatusResponse {
     opencode: string;
     kimi: string;
     zai: string;
+    avi: string;
     git: string;
     gh: string;
   };
@@ -94,6 +95,7 @@ export const SETUP_INSTALL_LINKS = {
   opencode: 'https://opencode.ai/docs/cli/',
   kimi: 'https://moonshotai.github.io/kimi-cli/en/',
   zai: 'https://docs.z.ai/devpack/tool/claude',
+  avi: 'https://github.com/aivaxlabs/avi',
   git: 'https://git-scm.com/downloads',
   gh: 'https://cli.github.com/',
 } as const;

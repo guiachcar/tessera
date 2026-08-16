@@ -191,6 +191,11 @@
   --provider-zai-soft-bg: rgba(59, 91, 253, 0.1);
   --provider-zai-soft-border: rgba(59, 91, 253, 0.22);
   --provider-zai-icon: #3b5bfd;
+  --provider-avi-avatar-bg: #1f8f6b;
+  --provider-avi-avatar-fg: #ffffff;
+  --provider-avi-soft-bg: rgba(31, 143, 107, 0.1);
+  --provider-avi-soft-border: rgba(31, 143, 107, 0.22);
+  --provider-avi-icon: #1f8f6b;
 
   /* Structural */
   --divider: #d9d9d5;
@@ -352,6 +357,11 @@
   --provider-zai-soft-bg: rgba(92, 120, 255, 0.14);
   --provider-zai-soft-border: rgba(92, 120, 255, 0.28);
   --provider-zai-icon: #7d93ff;
+  --provider-avi-avatar-bg: #2fbd8d;
+  --provider-avi-avatar-fg: #06231a;
+  --provider-avi-soft-bg: rgba(47, 189, 141, 0.14);
+  --provider-avi-soft-border: rgba(47, 189, 141, 0.28);
+  --provider-avi-icon: #4fd6a8;
 
   /* Structural */
   --divider: #252525;

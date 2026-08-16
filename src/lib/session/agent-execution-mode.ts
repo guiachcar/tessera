@@ -9,6 +9,11 @@ const PROVIDER_EXECUTION_CAPABILITIES: Record<string, ProviderExecutionCapabilit
   'claude-code': { pty: true, gui: true },
   codex: { pty: true, gui: true },
   opencode: { pty: true, gui: true },
+  kimi: { pty: false, gui: true },
+  zai: { pty: false, gui: true },
+  // Avi ships no terminal UI at all — it is driven purely over ACP — so PTY is
+  // not merely unsupported here, it does not exist on that side.
+  avi: { pty: false, gui: true },
 };
 
 export function getProviderExecutionCapabilities(

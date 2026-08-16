@@ -4,6 +4,7 @@ import { codexAdapter } from './codex/adapter';
 import { opencodeAdapter } from './opencode/adapter';
 import { kimiAdapter } from './kimi/adapter';
 import { zaiAdapter } from './zai/adapter';
+import { aviAdapter } from './avi/adapter';
 
 // Side-effect module imported by server startup to register built-in providers
 // exactly once across hot reloads.
@@ -12,3 +13,4 @@ cliProviderRegistry.registerIfAbsent(codexAdapter.getProviderId(), () => codexAd
 cliProviderRegistry.registerIfAbsent(opencodeAdapter.getProviderId(), () => opencodeAdapter);
 cliProviderRegistry.registerIfAbsent(kimiAdapter.getProviderId(), () => kimiAdapter);
 cliProviderRegistry.registerIfAbsent(zaiAdapter.getProviderId(), () => zaiAdapter);
+cliProviderRegistry.registerIfAbsent(aviAdapter.getProviderId(), () => aviAdapter);

@@ -16,6 +16,7 @@ import { loadClaudeSessionOptions } from './provider-session-options-claude';
 import { loadOpenCodeSessionOptions } from './provider-session-options-opencode';
 import { mergeCustomModelIds } from './provider-session-custom-models';
 import { buildKimiSessionOptions } from './provider-session-options-kimi';
+import { loadAviSessionOptions } from './provider-session-options-avi';
 import { buildZaiSessionOptions } from './provider-session-options-zai';
 import { getAgentEnvironment } from './spawn-cli';
 import type { AgentEnvironment } from '../settings/types';
@@ -99,7 +100,14 @@ async function getSessionOptionsAgentEnvironment(
   userId?: string,
   agentEnvironmentOverride?: AgentEnvironment,
 ): Promise<AgentEnvironment | 'static'> {
-  if (providerId === 'claude-code' || providerId === 'codex' || providerId === 'opencode') {
+  // These probe a binary to build their options, so the result depends on WHICH
+  // environment ran it (native vs WSL) and must be cached per environment.
+  if (
+    providerId === 'claude-code'
+    || providerId === 'codex'
+    || providerId === 'opencode'
+    || providerId === 'avi'
+  ) {
     return agentEnvironmentOverride ?? getAgentEnvironment(userId);
   }
 
@@ -127,6 +135,10 @@ async function loadProviderSessionOptions(
     );
   } else if (providerId === 'opencode') {
     sessionOptions = await loadOpenCodeSessionOptions(
+      agentEnvironment === 'static' || !agentEnvironment ? 'native' : agentEnvironment,
+    );
+  } else if (providerId === 'avi') {
+    sessionOptions = await loadAviSessionOptions(
       agentEnvironment === 'static' || !agentEnvironment ? 'native' : agentEnvironment,
     );
   } else if (providerId === 'kimi') {
