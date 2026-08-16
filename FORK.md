@@ -112,3 +112,50 @@ git cherry-pick <sha>`), rodar os checks do CONTRIBUTING e abrir contra `dev`.
   do upstream — chega na próxima release.
 - Upstream: main ~8 commits à frente / dev ~20 commits exclusivos (fluxo deles:
   PR → dev, release → main).
+
+## Análise da v0.2.3 (2026-08-16) — só levantamento, nada aplicado
+
+Upstream `v0.2.3` (publicada 15/08/2026): **668 commits / 1041 arquivos** sobre a
+v0.2.2. Nosso delta: **15 commits / 97 arquivos**. Interseção de 57 arquivos;
+`git merge-tree --write-tree v0.2.3 custom` → **28 arquivos em conflito**.
+
+### O que a 0.2.3 tornou nativo (candidato a descarte no fork)
+
+| Nativo na 0.2.3 | Nosso equivalente | Situação |
+|---|---|---|
+| Tessera CLI (`src/lib/control/*`, 19 arquivos + `skills/tessera-cli/SKILL.md`): `status`, `worktree create`, `session launch/wait/read/prompt/send-keys`, toggle em Settings → Development | `src/lib/orchestrator/*` (MCP HTTP in-process, 515 linhas, fase 1 read-only) | Colisão direta. Diferença de modelo de confiança: nosso MCP é acessível por qualquer processo local (token + loopback); a CLI deles só roda dentro de sessão gerenciada (`TESSERA_ENV=1`). |
+| Mobile + pairing Tailscale (`electron/remote-access-status.ts`, `tailscale-firewall-capability.ts`, `api/pairing/*`, QR, rate limit, firewall) | patch `TESSERA_HOST` no Electron (d2c8139) | Superado. (`TESSERA_HOST` no `server.ts` já era upstream desde a 0.2.2.) |
+| `ELECTRON_DEFAULT_PORT = 32123` + `resolveElectronServerPort` | `TESSERA_PORT` (261cbd7) | Porta já é fixa por padrão — checar se o env ainda faz falta. |
+| Custom models (`custom-model-settings.tsx`, `provider-session-custom-models.ts`) — só `claude-code` e `codex`, só o ID | `model-config.local.json` overlay (60899dd) | Sobreposição parcial. |
+| Git workflow reescrito (seleção em massa, mensagem gerada, pull/push/PR, conflitos) | git panel typed errors (529386f) | Painel refeito; conflito em `git-panel.tsx` + `use-git-panel-controller.ts`. |
+| WSL: `wsl-path-probe`, `wsl-inotify-bridge`, overlays Codex/OpenCode | WSL exec fast path (31e73a7) | Parcial — medir se o fast path ainda ganha algo. |
+
+Ganho puro (nada nosso concorre): file editing, worktree setup scripts, PTY Chat
+View, slash discovery, sub-session reorder, archive individual de sessão.
+Novidade a observar: telemetria de uso (tem opt-out em Settings e por env,
+`telemetryDisabledByEnv`).
+
+### O que continua exclusivo do fork
+
+Providers **Kimi (ACP)**, **Z.ai GLM** e **AVI** (upstream segue só
+claude-code/codex/opencode) e o **side chat** — `parent_session_id` tem 0
+ocorrências em `src/lib/db` da v0.2.3; o "Sub-Session" deles é agrupamento de
+board, conceito diferente. São ~40 arquivos que o upstream nem tocou.
+
+### Banco: risco menor que o registrado acima
+
+Upstream está em `SCHEMA_VERSION = 39`; nós em 30. Bancos carimbados 30 pelo
+build custom fazem o upstream pular só o bloco `fromVersion < 30`, que apenas
+adiciona `projects.preparation_script` — recriado de forma idempotente por
+`ensureLatestSchema()` no boot. Os blocos 31→39 rodam normalmente. Ação na
+atualização: renumerar nossa migração v30 → **v40**, mantendo-a idempotente.
+
+### Caminho recomendado (não executado)
+
+Replantar sobre `v0.2.3` em branch nova em vez de rebase/merge: recolocar só
+providers + side chat (+ o que sobreviver de chat links/WSL) e descartar o que
+virou nativo. Delta cai de 97 para ~40 arquivos, quase todos exclusivos.
+Regra que se confirmou na prática: feature em **arquivo novo** com 1-2 linhas de
+registro em arquivo do upstream não conflita (providers); feature que edita
+componente do upstream conflita (git panel). Encolhimento permanente do delta =
+PR upstream dos providers (CONTRIBUTING pede issue antes p/ provider novo).
