@@ -1,7 +1,7 @@
 /**
  * Z.ai GLM Adapter
  *
- * Runs GLM models (glm-5.2 / glm-4.7) through the Claude Code CLI pointed at
+ * Runs GLM models (glm-5.3 / glm-5.2 / glm-4.7) through the Claude Code CLI pointed at
  * Z.ai's Anthropic-compatible endpoint. The whole session protocol (stream-json
  * stdin/stdout, permission prompts, resume) is inherited from ClaudeCodeAdapter;
  * this subclass only swaps the provider identity, injects the Z.ai endpoint
