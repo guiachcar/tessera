@@ -15,10 +15,18 @@ import type {
  */
 export const ZAI_MODEL_OPTIONS: ProviderModelOption[] = [
   {
-    value: 'glm-5.2',
-    label: 'GLM-5.2',
+    value: 'glm-5.3',
+    label: 'GLM-5.3',
     description: 'Latest GLM flagship (recommended)',
     isDefault: true,
+    defaultReasoningEffort: null,
+    supportedReasoningEfforts: [],
+  },
+  {
+    value: 'glm-5.2',
+    label: 'GLM-5.2',
+    description: 'Previous GLM flagship',
+    isDefault: false,
     defaultReasoningEffort: null,
     supportedReasoningEfforts: [],
   },
